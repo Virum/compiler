@@ -16,4 +16,14 @@ module Term = struct
           Error (format "%s Syntax error" (location lexbuf))
       | exception Lexer.Error message ->
           Error (format "%s %s" (location lexbuf) message)
+
+  let parse_channel channel =
+    let lexbuf = Lexing.from_channel channel in
+    match Grammar.parse_term Lexer.read lexbuf with
+      | value -> Ok value
+      | exception Grammar.Error ->
+(*           print_endline (format "%s Syntax error" (location lexbuf)); *)
+          Error (format "%s Syntax error" (location lexbuf))
+      | exception Lexer.Error message ->
+          Error (format "%s %s" (location lexbuf) message)
 end

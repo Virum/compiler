@@ -24,4 +24,7 @@ and pattern = string
 and case = pattern * term
   [@@deriving sexp]
 
+
+let a, b, c, d = Identifier "a", Identifier "b", Identifier "c", Identifier "d"
+
 let dump t = print_string (Sexplib.Sexp.to_string_hum (sexp_of_term t))

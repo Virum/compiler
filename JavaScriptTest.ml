@@ -29,8 +29,6 @@ let () = test "Infix" @@ fun () ->
                     Number 3.0))
     => "(1. + 2.) * 3."
 
-let a, b, c, d = Identifier "a", Identifier "b", Identifier "c", Identifier "d"
-
 let () = test "Call" @@ fun () ->
   to_string (Call (a, []))
     => "a()";
@@ -55,17 +53,38 @@ let () = test "Function" @@ fun () ->
   to_string (Function (None, ["a"; "b"; "c"], []))
     => "function (a, b, c) {}";
   to_string (Function (None, [], [Term a; Term b; Term c]))
-    => "function () {a; b; c;}"
+    => "function () {
+  a;
+  b;
+  c;
+}"
 
 let () = test "If-else" @@ fun () ->
   to_string (Function (None, [], [IfElse (a, [], [])]))
-    => "function () {if (a) {} else {};}";
+    => "function () {
+  if (a) {} else {};
+}";
   to_string (Function (None, [], [IfElse (a, [Term b; Term c], [Term d])]))
-    => "function () {if (a) {b; c;} else {d;};}";
+    => "function () {
+  if (a) {
+    b;
+    c;
+  } else {
+    d;
+  };
+}";
   to_string (Function (None, [], [
     IfElse (a, [Term b], [IfElse (c, [Term d], [Term a])])
   ]))
-    => "function () {if (a) {b;} else if (c) {d;} else {a;};}";
+    => "function () {
+  if (a) {
+    b;
+  } else if (c) {
+    d;
+  } else {
+    a;
+  };
+}";
   to_string (Function (None, [], [
     IfElse (a, [Term b], [
       IfElse (c, [Term d], [
@@ -73,11 +92,23 @@ let () = test "If-else" @@ fun () ->
       ])
     ])
   ]))
-    => "function () {if (a) {b;} else if (c) {d;} else if (a) {b;} else {c;};}"
+    => "function () {
+  if (a) {
+    b;
+  } else if (c) {
+    d;
+  } else if (a) {
+    b;
+  } else {
+    c;
+  };
+}"
 
 let () = test "Return" @@ fun () ->
   to_string (Function (None, [], [Return a]))
-    => "function () {return a;}"
+    => "function () {
+  return a;
+}"
 
 let () = test "Integration" @@ fun () ->
   to_string (
@@ -88,38 +119,41 @@ let () = test "Integration" @@ fun () ->
           [Call (Identifier "factorial", [Number 5.])]
         ))
       ]),
-      [Identifier "_"]
+      [
+        Function (Some "factorial", ["n"], [
+          Return (
+            Call (
+              Function (None, [], [
+                IfElse (Infix (Identifier "n", Op.Equal, Number 0.), [
+                  Return (Number 1.)
+                ], (* else *) [
+                  Return (Infix (
+                    Call (Identifier "factorial", [
+                      Infix (Identifier "n", Op.Minus, Number 1.)
+                    ]),
+                    Op.Times,
+                    Identifier "n"
+                  ))
+                ])
+              ]),
+              []
+            )
+          )
+        ])
+      ]
     )
-  ) =>> "hai"
-(*
-  to_string (
-    Call (
-      Function (None, ["factorial"], [
-        Return (Call (
-          Member (Identifier "console", String "log"),
-          [Call (Identifier "factorial", [Number 5.])]
-        ))
-      ]),
-    [
-      Function (Some "factorial", ["n"], [
-        Return (Function (None, [], [
-          IfElse (Infix (Identifier "n", Op.Equal, Number 0.), [
-            Return (Number 1.)
-          ], (* else *) [
-            Return (Infix (Call
-              (Identifier "factorial", (Infix (Identifier "n",
-                                               Op.Minus,
-                                               Number 1.))),
-              Op.Times,
-              Identifier "n"
-            ))
-          ])
-        ]))
-      ])
-    ]
-  ) =>> "hai"
-*)
-
+  ) => "\
+(function (factorial) {
+   return console.log(factorial(5.));
+ })(function factorial(n) {
+      return (function () {
+                if (n == 0.) {
+                  return 1.;
+                } else {
+                  return factorial(n - 1.) * n;
+                };
+              })();
+    })"
 (*
   (function (factorial) {
     return console.log(factorial(5));
