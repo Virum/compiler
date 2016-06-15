@@ -59,4 +59,5 @@ module Term = struct
 end
 
 let rec compile = function
-  | Module (name, body) -> ()
+  | V.Module (name, body) -> ()
+  | _ -> ()

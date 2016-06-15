@@ -46,6 +46,7 @@ and statement =
   | Return of term
   | Term of term
   | IfElse of term * statement list * statement list
+  | Var of string * term
 
 let precedence = function
   | Number _ | Identifier _ | String _ -> 999
@@ -120,7 +121,6 @@ and format_statement tail f = function
         box tail format condition
         format_statements consequence
         (format_statement true) nested_if_else
-
   | IfElse (condition, consequence, alternative) -> fprintf f
       "%aif (%a) {%a@]@[<v 2>} else {%a}@]"
         box tail
@@ -129,6 +129,8 @@ and format_statement tail f = function
         format_statements alternative
   | Return term -> fprintf f
       "return %a" format term
+  | Var (name, term) -> fprintf f
+      "var %s = %a" name format term
 
 and format f =
   format_precedence (-1) f

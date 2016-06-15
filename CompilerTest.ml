@@ -58,3 +58,4 @@ var foo = (function () {
   var bar = ...;
   return {bar: bar};
 })
+*)

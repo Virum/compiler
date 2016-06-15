@@ -110,6 +110,14 @@ let () = test "Return" @@ fun () ->
   return a;
 }"
 
+let () = test "Variable declaration" @@ fun () ->
+  to_string (Function (None, [], [
+    Var ("x", a)
+  ]))
+    => "function () {
+  var x = a;
+}"
+
 let () = test "Integration" @@ fun () ->
   to_string (
     Call (
