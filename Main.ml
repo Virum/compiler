@@ -1,23 +1,22 @@
+module Result = struct
+  module Infix = struct
+    let (>>=) = function
+      | Ok ok   -> fun f -> f ok
+      | Error e -> fun _ -> Error e
 
+    let (>>|) result f =
+      result >>= fun x -> Ok (f x)
+  end
 
+  let print = function
+    | Ok    string -> Printf.printf  "%s\n" string
+    | Error string -> Printf.eprintf "%s\n" string
+end
 
+open Result.Infix
 
-
-let (>>=) result callback =
-  match result with
-  | Ok x -> callback x
-  | Error e -> Error e
-
-
-
-let main () =
-  let result = Parser.Term.parse_channel stdin >>= fun ast ->
-  Ok (Compiler.compile ast) >>= fun js_ast ->
-  Ok (JavaScript.to_string js_ast)
-
-  in
-  match result with
-  | Ok r -> print_endline r
-  | Error r -> print_endline r
-
-let () = main ()
+let () =
+  Parser.Term.parse_channel stdin
+  >>| Compiler.compile
+  >>| JavaScript.to_string
+  |> Result.print
