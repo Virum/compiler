@@ -44,6 +44,6 @@ def ocamlbuild targets
        -tag 'ppx(./ppx -as-ppx)' \
        -tag thread -use-ocamlfind \
        -use-menhir -menhir 'menhir --explain --strict' \
-       -pkgs str,sexplib \
+       -pkgs str,sexplib,core_kernel \
        #{targets}}
 end

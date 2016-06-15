@@ -180,3 +180,7 @@ let a, b, c, d = Identifier "a", Identifier "b", Identifier "c", Identifier "d"
 
 
 let to_string ast = Format.asprintf "%a" format ast
+let statement_to_string st = Format.asprintf "%a" (format_statement false) st
+
+let print ast = print_endline (to_string ast)
+let print_statement st = print_endline (statement_to_string st)

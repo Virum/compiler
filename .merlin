@@ -1,4 +1,4 @@
 S vendor
 B _build
 B _build/vendor
-PKG str sexplib
+PKG str sexplib core_kernel

@@ -58,6 +58,18 @@ module Term = struct
     | _ -> assert false
 end
 
+module List = Core_kernel.Std.List
+
 let rec compile = function
-  | V.Module (name, body) -> ()
-  | _ -> ()
+  | V.Module (name, body) ->
+      let declarations = List.map body ~f:compile in
+      let namespace_object = List.filter_map body ~f:(function
+        | V.Let (name, _) -> Some (name, JS.Identifier name)
+        | V.Module (name, _) -> Some (name, JS.Identifier name)
+        | V.Do _ -> None
+      ) in
+      JS.(Var (name, (Call (Function (None, [], declarations @ [
+        Return (Object namespace_object);
+      ]), []))))
+  | V.Let (name, term) -> JS.(Var (name, Term.compile term))
+  | _ -> assert false

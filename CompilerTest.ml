@@ -38,13 +38,32 @@ let () = test "Call" @@ fun () ->
 
 (* ITEM *)
 
-(*
 let () = test "Module" @@ fun () ->
   item V.(Module ("foo", []))
-    => JS.(Var ("foo", Function (None, [], [
-         Return (Number 42);
-       ])))
-*)
+    => JS.(Var ("foo", (Call (Function (None, [], [
+         Return (Object []);
+       ]), []))));
+  item V.(Module ("foo", [
+    Let ("a", b);
+    Let ("b", c);
+  ]))
+    => JS.(Var ("foo", (Call (Function (None, [], [
+         Var ("a", b);
+         Var ("b", c);
+         Return (Object [("a", a); ("b", b)]);
+       ]), []))));
+  item V.(Module ("foo", [
+    Module ("a", [])
+  ]))
+    => JS.(Var ("foo", (Call (Function (None, [], [
+         Var ("a", Call (Function (None, [], [Return (Object [])]), []));
+         Return (Object [("a", a)]);
+       ]), []))))
+
+let () = test "Let" @@ fun () ->
+  item V.(Let ("a", b))
+    => JS.(Var ("a", b))
+
 
 
 (*

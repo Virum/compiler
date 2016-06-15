@@ -122,10 +122,10 @@ let () = test "Object literal" @@ fun () ->
   to_string (Object [])
     => "{}";
   to_string (Object [("x", a); ("y", b)])
-  =>> "{x: a, y: b}";
+    => "{x: a, y: b}";
   to_string (Object [("object_too_long_to_fit_on_one_line", a);
                      ("object_too_long_to_fit_on_one_line", b)])
-    =>> "{
+    => "{
   object_too_long_to_fit_on_one_line: a,
   object_too_long_to_fit_on_one_line: b
 }"
