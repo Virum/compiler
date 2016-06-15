@@ -41,7 +41,9 @@ let () = test "Call" @@ fun () ->
 (*
 let () = test "Module" @@ fun () ->
   item V.(Module ("foo", []))
-    => JS.(
+    => JS.(Var ("foo", Function (None, [], [
+         Return (Number 42);
+       ])))
 *)
 
 
