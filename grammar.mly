@@ -1,8 +1,10 @@
 %{ open Syntax %}
 
 %start <Syntax.term> parse_term
+%start <Syntax.item> parse_item
 
 %token AND AS CASE CLASS ELSE FROM IF IMPORT INTERFACE LET MODULE SWITCH THEN IN
+       DO
 
 %token LEFT_PAREN RIGHT_PAREN LEFT_BRACKET RIGHT_BRACKET LEFT_BRACE RIGHT_BRACE
        COLON COMMA SEMICOLON EQUAL PLUS MINUS DOT STAR SLASH GREATER_EQUAL
@@ -31,6 +33,14 @@
 
 %%
 
+parse_item: item EOF { $1 }
+
+item:
+| LET left=pattern EQUAL right=term
+  { Let (left, right) }
+| DO term=term
+  { Do term }
+
 parse_term: term EOF { $1 }
 
 if_else(__term__):
@@ -49,10 +59,6 @@ make_term(__term__):
   { Infix (left, operator, right) }
 | caller=__term__ arguments=parenthesised(comma_separated(term))
   { Call (caller, arguments) }
-(*
-| LET name=ID LEFT_PAREN RIGHT_PAREN EQUAL body=__term__
-  { LetFunction (name, [], body) }
-*)
 
 term_no_case:
 | make_term(term_no_case) { $1 }
@@ -64,15 +70,6 @@ term:
 | nonempty_list(case) { CaseFunction $1 }
 | SWITCH subject=term_no_case
     cases=nonempty_list(case) { Switch (subject, cases) }
-(*
-| left=term operator=infix_operator right=term
-  { Infix (left, operator, right) }
-*)
-(*
-| caller=term arguments=parenthesised(comma_separated(term))
-  { Call (caller, arguments) }
-*)
-
 
 case:
 | CASE pattern=pattern COLON consequence=term_no_case

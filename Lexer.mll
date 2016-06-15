@@ -9,6 +9,7 @@
     | "as"        -> AS
     | "case"      -> CASE
     | "class"     -> CLASS
+    | "do"        -> DO
     | "else"      -> ELSE
     | "from"      -> FROM
     | "if"        -> IF

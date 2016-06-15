@@ -19,3 +19,17 @@ module Term = struct
 
   let parse_channel channel = parse_lexbuf (Lexing.from_channel channel)
 end
+
+module Item = struct
+  let parse_lexbuf lexbuf =
+    match Grammar.parse_item Lexer.read lexbuf with
+      | value -> Ok value
+      | exception Grammar.Error ->
+          Error (`Syntax_error (location lexbuf))
+      | exception Lexer.Error (`Bad_escape_sequence sequence) ->
+          Error (`Bad_escape_sequence (location lexbuf, sequence))
+
+  let parse source = parse_lexbuf (Lexing.from_string source)
+
+  let parse_channel channel = parse_lexbuf (Lexing.from_channel channel)
+end
