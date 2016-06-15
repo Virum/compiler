@@ -58,25 +58,15 @@ let () = test "Module" @@ fun () ->
     => JS.(Var ("foo", (Call (Function (None, [], [
          Var ("a", Call (Function (None, [], [Return (Object [])]), []));
          Return (Object [("a", a)]);
+       ]), []))));
+  item V.(Module ("foo", [
+    Do (Call (Identifier "factorial", [Number 5]));
+  ]))
+    => JS.(Var ("foo", (Call (Function (None, [], [
+         Term (Call (Identifier "factorial", [Number 5.]));
+         Return (Object []);
        ]), []))))
 
 let () = test "Let" @@ fun () ->
   item V.(Let ("a", b))
     => JS.(Var ("a", b))
-
-
-
-(*
-
-var foo = {}
-
-
-var foo = (function () {
-  return {};
-})
-
-var foo = (function () {
-  var bar = ...;
-  return {bar: bar};
-})
-*)

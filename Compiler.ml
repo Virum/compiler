@@ -72,4 +72,4 @@ let rec compile = function
         Return (Object namespace_object);
       ]), []))))
   | V.Let (name, term) -> JS.(Var (name, Term.compile term))
-  | _ -> assert false
+  | V.Do term -> JS.Term (Term.compile term)

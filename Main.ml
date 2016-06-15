@@ -26,7 +26,7 @@ open Result.Infix
 let () =
   let result =
     Parser.Term.parse_channel stdin
-      >>| Compiler.compile
+      >>| Compiler.Term.compile
       >>| JavaScript.to_string
   in
   result
