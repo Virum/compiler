@@ -13,9 +13,9 @@ let () = test "String literals" @@ fun () ->
   term {| "\x41 \x61 \n \r \t \" \\" |}
     => Ok (String "A a \n \r \t \" \\");
   term {| "\x??" |}
-    => Error "1:6: Bad escape sequence: \\x??";
+    => Error (`Bad_escape_sequence ((1, 6), "\\x??"));
   term {| "\?" |}
-    => Error "1:4: Bad escape sequence: \\?"
+    => Error (`Bad_escape_sequence ((1, 4), "\\?"))
 
 let () = test "Number literals" @@ fun () ->
   term "123" => Ok (Number 123)
@@ -34,7 +34,7 @@ let () = test "Case function" @@ fun () ->
     => Ok (CaseFunction [("foo", bar); ("baz", foo)]);
   term "case foo: case a: b
         case baz: foo"
-    => Error "1:14: Syntax error"; (* nested cases require parenthesis *)
+    => Error (`Syntax_error (1, 14)); (* nested cases require parenthesis *)
   term "case foo: (case a: b)
         case baz: foo"
     => Ok (CaseFunction [("foo", (CaseFunction [("a", b)])); ("baz", foo)])

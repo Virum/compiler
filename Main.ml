@@ -8,15 +8,29 @@ module Result = struct
       result >>= fun x -> Ok (f x)
   end
 
+  let map_error f = function
+    | Ok some -> Ok some
+    | Error e -> Error (f e)
+
   let print = function
     | Ok    string -> Printf.printf  "%s\n" string
     | Error string -> Printf.eprintf "%s\n" string
+
+  let exit = function
+    | Ok _ -> exit 0
+    | Error _ -> exit 1
 end
 
 open Result.Infix
 
 let () =
-  Parser.Term.parse_channel stdin
-  >>| Compiler.compile
-  >>| JavaScript.to_string
-  |> Result.print
+  let result =
+    Parser.Term.parse_channel stdin
+      >>| Compiler.compile
+      >>| JavaScript.to_string
+  in
+  result
+    |> Result.map_error Error.to_string
+    |> Result.print;
+  result
+    |> Result.exit;

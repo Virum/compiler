@@ -21,10 +21,10 @@
     | "switch"    -> SWITCH
     | other       -> ID other
 
-  exception Error of string
-
-  let errorf format_string =
-    Printf.ksprintf (fun string -> raise (Error string)) format_string
+  type error = [
+    `Bad_escape_sequence of string
+  ]
+  exception Error of error
 }
 
 let identifier = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
@@ -93,11 +93,11 @@ and read_string buffer = parse
         (Buffer.add_string buffer (Scanf.unescaped source);
         read_string buffer lexbuf)
       else
-        errorf "Bad escape sequence: %s" source;
+        raise (Error (`Bad_escape_sequence source))
     }
   | "\\" (_ as char) as source
     { if not (String.contains "nrt\\\"" char) then
-        errorf "Bad escape sequence: %s" source;
+        raise (Error (`Bad_escape_sequence source));
       Buffer.add_string buffer (Scanf.unescaped source);
       read_string buffer lexbuf }
 
