@@ -28,9 +28,7 @@ and case = pattern * term
 type item =
   | Let of pattern * term
   | Do of term
-  [@@deriving sexp]
-
-type items = item list
+  | Module of string * item list
   [@@deriving sexp]
 
 

@@ -1,7 +1,7 @@
 %{ open Syntax %}
 
 %start <Syntax.term> parse_term
-%start <Syntax.items> parse_items
+%start <Syntax.item list> parse_items
 
 %token AND AS CASE CLASS ELSE FROM IF IMPORT INTERFACE LET MODULE SWITCH THEN IN
        DO
@@ -40,6 +40,8 @@ item:
   { Let (left, right) }
 | DO term=term
   { Do term }
+| MODULE name=ID body=braced(item*)
+  { Module (name, body) }
 
 parse_term: term EOF { $1 }
 

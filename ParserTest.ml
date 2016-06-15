@@ -107,3 +107,18 @@ let () = test "Items" @@ fun () ->
       Let ("x", LetIn ("y", a, b));
       Do a;
     ]
+
+let () = test "Module" @@ fun () ->
+  items "
+    module foo {
+      let x = a
+      let x = let y = a in b
+      do a
+    }
+  " => Ok [
+         Module ("foo", [
+           Let ("x", a);
+           Let ("x", LetIn ("y", a, b));
+           Do a;
+         ])
+       ]
