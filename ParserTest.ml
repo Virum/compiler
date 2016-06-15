@@ -2,7 +2,7 @@ open Syntax
 let (test), (=>) = Test.(test, (=>))
 
 let term = Parser.Term.parse
-let item = Parser.Item.parse
+let items = Parser.Items.parse
 
 let () = test "comment" @@ fun () ->
   term "foo # comment" => Ok (Identifier "foo")
@@ -98,8 +98,12 @@ let () = test "Integration: factorial" @@ fun () ->
     )
   ]), Call (Identifier "print", [Call (Identifier "factorial", [Number 5])])))
 
-let () = test "Item" @@ fun () ->
-  item "let x = a"
-    => Ok (Let ("x", a));
-  item "do a"
-    => Ok (Do a)
+let () = test "Items" @@ fun () ->
+  items "let x = a
+         let x = let y = a in b
+         do a"
+    => Ok [
+      Let ("x", a);
+      Let ("x", LetIn ("y", a, b));
+      Do a;
+    ]

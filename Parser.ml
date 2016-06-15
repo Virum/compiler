@@ -20,9 +20,9 @@ module Term = struct
   let parse_channel channel = parse_lexbuf (Lexing.from_channel channel)
 end
 
-module Item = struct
+module Items = struct
   let parse_lexbuf lexbuf =
-    match Grammar.parse_item Lexer.read lexbuf with
+    match Grammar.parse_items Lexer.read lexbuf with
       | value -> Ok value
       | exception Grammar.Error ->
           Error (`Syntax_error (location lexbuf))

@@ -1,7 +1,7 @@
 %{ open Syntax %}
 
 %start <Syntax.term> parse_term
-%start <Syntax.item> parse_item
+%start <Syntax.items> parse_items
 
 %token AND AS CASE CLASS ELSE FROM IF IMPORT INTERFACE LET MODULE SWITCH THEN IN
        DO
@@ -33,7 +33,7 @@
 
 %%
 
-parse_item: item EOF { $1 }
+parse_items: item* EOF { $1 }
 
 item:
 | LET left=pattern EQUAL right=term

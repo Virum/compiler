@@ -30,6 +30,9 @@ type item =
   | Do of term
   [@@deriving sexp]
 
+type items = item list
+  [@@deriving sexp]
+
 
 
 let a, b, c, d = Identifier "a", Identifier "b", Identifier "c", Identifier "d"
