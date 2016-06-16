@@ -40,14 +40,14 @@ let () = test "Call" @@ fun () ->
 
 let () = test "Module" @@ fun () ->
   item V.(Module ("foo", []))
-    => JS.(Var ("foo", (Call (Function (None, [], [
+    => JS.(Var ("foo", (Call (Function (Some "foo", [], [
          Return (Object []);
        ]), []))));
   item V.(Module ("foo", [
     Let ("a", b);
     Let ("b", c);
   ]))
-    => JS.(Var ("foo", (Call (Function (None, [], [
+    => JS.(Var ("foo", (Call (Function (Some "foo", [], [
          Var ("a", b);
          Var ("b", c);
          Return (Object [("a", a); ("b", b)]);
@@ -55,14 +55,14 @@ let () = test "Module" @@ fun () ->
   item V.(Module ("foo", [
     Module ("a", [])
   ]))
-    => JS.(Var ("foo", (Call (Function (None, [], [
-         Var ("a", Call (Function (None, [], [Return (Object [])]), []));
+    => JS.(Var ("foo", (Call (Function (Some "foo", [], [
+         Var ("a", Call (Function (Some "a", [], [Return (Object [])]), []));
          Return (Object [("a", a)]);
        ]), []))));
   item V.(Module ("foo", [
     Do (Call (Identifier "factorial", [Number 5]));
   ]))
-    => JS.(Var ("foo", (Call (Function (None, [], [
+    => JS.(Var ("foo", (Call (Function (Some "foo", [], [
          Term (Call (Identifier "factorial", [Number 5.]));
          Return (Object []);
        ]), []))))
@@ -72,6 +72,10 @@ let () = test "Let" @@ fun () ->
     => JS.(Var ("a", b))
 
 let () = test "Class" @@ fun () ->
+  item V.(Class ("Foo", ["a"; "b"], [
+    Do (Call (a, []));
+    Let ("b", b);
+  ])) |> JS.print_statement;
   item V.(Class ("Foo", ["a"; "b"], [
     Do (Call (a, []));
     Let ("b", b);

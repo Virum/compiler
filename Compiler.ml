@@ -60,23 +60,21 @@ end
 
 module List = Core_kernel.Std.List
 
-let namespace_object body = List.filter_map body ~f:(function
-  | V.Let (name, _) -> Some (name, JS.Identifier name)
-  | V.Module (name, _) -> Some (name, JS.Identifier name)
-  | V.Do _ -> None
-  | V.Class (name, _, _) -> Some (name, JS.Identifier name)
-)
 
-let rec compile = function
+let bindings statements = List.filter_map statements ~f:(function
+  | V.Let (name, _) | V.Module (name, _) | V.Class (name, _, _) -> Some name
+  | V.Do _ -> None)
+
+let rec compile_namespace ~name ~parameters ~body =
+  let body' = List.map body ~f:compile in
+  let name_to_pair name = (name, JS.Identifier name) in
+  let object' = List.map (bindings body) ~f:name_to_pair in
+  JS.(Function (Some name, parameters, body' @ [Return (Object object')]))
+
+and compile = function
   | V.Module (name, body) ->
-      let declarations = List.map body ~f:compile in
-      JS.(Var (name, (Call (Function (None, [], declarations @ [
-        Return (Object (namespace_object body));
-      ]), []))))
+      JS.(Var (name, (Call (compile_namespace ~name ~parameters:[] ~body, []))))
   | V.Let (name, term) -> JS.(Var (name, Term.compile term))
   | V.Do term -> JS.Term (Term.compile term)
   | V.Class (name, parameters, body) ->
-      let declarations = List.map body ~f:compile in
-      JS.(Var (name, (Function (Some name, parameters, declarations @ [
-        Return (Object (namespace_object body));
-      ]))))
+      JS.(Var (name, compile_namespace ~name ~parameters ~body))
