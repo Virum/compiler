@@ -29,6 +29,7 @@ type item =
   | Let of pattern * term
   | Do of term
   | Module of string * item list
+  | Class of string * pattern list * item list
   [@@deriving sexp]
 
 

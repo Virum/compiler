@@ -60,16 +60,23 @@ end
 
 module List = Core_kernel.Std.List
 
+let namespace_object body = List.filter_map body ~f:(function
+  | V.Let (name, _) -> Some (name, JS.Identifier name)
+  | V.Module (name, _) -> Some (name, JS.Identifier name)
+  | V.Do _ -> None
+  | V.Class (name, _, _) -> Some (name, JS.Identifier name)
+)
+
 let rec compile = function
   | V.Module (name, body) ->
       let declarations = List.map body ~f:compile in
-      let namespace_object = List.filter_map body ~f:(function
-        | V.Let (name, _) -> Some (name, JS.Identifier name)
-        | V.Module (name, _) -> Some (name, JS.Identifier name)
-        | V.Do _ -> None
-      ) in
       JS.(Var (name, (Call (Function (None, [], declarations @ [
-        Return (Object namespace_object);
+        Return (Object (namespace_object body));
       ]), []))))
   | V.Let (name, term) -> JS.(Var (name, Term.compile term))
   | V.Do term -> JS.Term (Term.compile term)
+  | V.Class (name, parameters, body) ->
+      let declarations = List.map body ~f:compile in
+      JS.(Var (name, (Function (Some name, parameters, declarations @ [
+        Return (Object (namespace_object body));
+      ]))))

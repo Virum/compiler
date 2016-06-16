@@ -42,6 +42,10 @@ item:
   { Do term }
 | MODULE name=ID body=braced(item*)
   { Module (name, body) }
+| CLASS name=ID parameters=parameters body=braced(item*)
+  { Class (name, parameters, body) }
+
+parameters: parenthesised(comma_separated(pattern)) { $1 }
 
 parse_term: term EOF { $1 }
 

@@ -122,3 +122,11 @@ let () = test "Module" @@ fun () ->
            Do a;
          ])
        ]
+
+let () = test "Class" @@ fun () ->
+  items "class Foo() {}"
+    => Ok [Class ("Foo", [], [])];
+  items "class Foo(bar, baz) {}"
+    => Ok [Class ("Foo", ["bar"; "baz"], [])];
+  items "class Foo() { let x = a }"
+    => Ok [Class ("Foo", [], [Let ("x", a)])]

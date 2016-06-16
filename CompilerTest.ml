@@ -70,3 +70,15 @@ let () = test "Module" @@ fun () ->
 let () = test "Let" @@ fun () ->
   item V.(Let ("a", b))
     => JS.(Var ("a", b))
+
+let () = test "Class" @@ fun () ->
+  item V.(Class ("Foo", ["a"; "b"], [
+    Do (Call (a, []));
+    Let ("b", b);
+  ]))
+    => JS.(Var ("Foo", Function (Some "Foo", ["a"; "b"], [
+         Term (Call (a, []));
+         Var ("b", b);
+         Return (Object [("b", b)]);
+       ])))
+
