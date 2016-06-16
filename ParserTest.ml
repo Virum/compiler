@@ -128,5 +128,10 @@ let () = test "Class" @@ fun () ->
     => Ok [Class ("Foo", [], [])];
   items "class Foo(bar, baz) {}"
     => Ok [Class ("Foo", ["bar"; "baz"], [])];
-  items "class Foo() { let x = a }"
-    => Ok [Class ("Foo", [], [Let ("x", a)])]
+  items "class Foo() {
+    let x = a
+    let y = b
+  }" => Ok [Class ("Foo", [], [
+    Let ("x", a);
+    Let ("y", b);
+  ])]

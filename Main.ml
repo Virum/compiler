@@ -25,9 +25,10 @@ open Result.Infix
 
 let () =
   let result =
-    Parser.Term.parse_channel stdin
-      >>| Compiler.Term.compile
-      >>| JavaScript.to_string
+    Parser.Items.parse_channel stdin
+      >>| (fun items -> Syntax.Module ("Virum", items))
+      >>| Compiler.compile
+      >>| JavaScript.statement_to_string
   in
   result
     |> Result.map_error Error.to_string

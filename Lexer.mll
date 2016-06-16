@@ -11,7 +11,6 @@
     | "class"     -> CLASS
     | "do"        -> DO
     | "else"      -> ELSE
-    | "from"      -> FROM
     | "if"        -> IF
     | "in"        -> IN
     | "import"    -> IMPORT
