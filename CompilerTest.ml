@@ -75,10 +75,6 @@ let () = test "Class" @@ fun () ->
   item V.(Class ("Foo", ["a"; "b"], [
     Do (Call (a, []));
     Let ("b", b);
-  ])) |> JS.print_statement;
-  item V.(Class ("Foo", ["a"; "b"], [
-    Do (Call (a, []));
-    Let ("b", b);
   ]))
     => JS.(Var ("Foo", Function (Some "Foo", ["a"; "b"], [
          Term (Call (a, []));

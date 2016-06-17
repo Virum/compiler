@@ -52,71 +52,59 @@ let () = test "Function" @@ fun () ->
     => "function rec() {}";
   to_string (Function (None, ["a"; "b"; "c"], []))
     => "function (a, b, c) {}";
-  to_string (Function (None, [], [Term a; Term b; Term c]))
-    => "function () {
+  statement_to_string (Term (Function (None, [], [Term a; Term b; Term c])))
+    => "\
+function () {
   a;
   b;
   c;
-}"
+};"
 
 let () = test "If-else" @@ fun () ->
-  to_string (Function (None, [], [IfElse (a, [], [])]))
-    => "function () {
-  if (a) {} else {};
+  statement_to_string (IfElse (a, [], []))
+    => "if (a) {} else {}";
+  statement_to_string (IfElse (a, [Term b; Term c], [Term d]))
+    => "\
+if (a) {
+  b;
+  c;
+} else {
+  d;
 }";
-  to_string (Function (None, [], [IfElse (a, [Term b; Term c], [Term d])]))
-    => "function () {
-  if (a) {
-    b;
-    c;
-  } else {
-    d;
-  };
+  statement_to_string (IfElse (a, [Term b], [IfElse (c, [Term d], [Term a])]))
+    => "\
+if (a) {
+  b;
+} else if (c) {
+  d;
+} else {
+  a;
 }";
-  to_string (Function (None, [], [
-    IfElse (a, [Term b], [IfElse (c, [Term d], [Term a])])
-  ]))
-    => "function () {
-  if (a) {
-    b;
-  } else if (c) {
-    d;
-  } else {
-    a;
-  };
-}";
-  to_string (Function (None, [], [
+  statement_to_string (
     IfElse (a, [Term b], [
       IfElse (c, [Term d], [
         IfElse (a, [Term b], [Term c])
       ])
     ])
-  ]))
-    => "function () {
-  if (a) {
-    b;
-  } else if (c) {
-    d;
-  } else if (a) {
-    b;
-  } else {
-    c;
-  };
+  )
+    => "\
+if (a) {
+  b;
+} else if (c) {
+  d;
+} else if (a) {
+  b;
+} else {
+  c;
 }"
 
 let () = test "Return" @@ fun () ->
-  to_string (Function (None, [], [Return a]))
-    => "function () {
-  return a;
-}"
+  statement_to_string (Return a)
+    => "return a;"
 
 let () = test "Variable declaration" @@ fun () ->
-  to_string (Function (None, [], [
-    Var ("x", a)
-  ]))
-    => "function () {
-  var x = a;
-}"
+  statement_to_string (Var ("x", a))
+    => "var x = a;"
 
 let () = test "Object literal" @@ fun () ->
   to_string (Object [])
@@ -131,7 +119,7 @@ let () = test "Object literal" @@ fun () ->
 }"
 
 let () = test "Integration" @@ fun () ->
-  to_string (
+  statement_to_string (Term (
     Call (
       Function (None, ["factorial"], [
         Return (Call (
@@ -162,18 +150,18 @@ let () = test "Integration" @@ fun () ->
         ])
       ]
     )
-  ) => "\
+  )) => "\
 (function (factorial) {
-   return console.log(factorial(5.));
- })(function factorial(n) {
-      return (function () {
-                if (n == 0.) {
-                  return 1.;
-                } else {
-                  return factorial(n - 1.) * n;
-                };
-              })();
-    })"
+  return console.log(factorial(5.));
+})(function factorial(n) {
+  return (function () {
+    if (n == 0.) {
+      return 1.;
+    } else {
+      return factorial(n - 1.) * n;
+    }
+    })();
+  });"
 (*
   (function (factorial) {
     return console.log(factorial(5));

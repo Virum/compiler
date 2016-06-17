@@ -112,7 +112,7 @@ let box f tail = if tail then text "" f () else text "@[<v 2>" f ()
 
 let rec format_statements f statements =
 (*   format_list ~sep:"; " ~trailer:";" format_statement f statements *)
-  format_list_2 ~start:(text "@,") ~sep:(text ";@ ") ~trailer:(text ";@;<0 -2>")
+  format_list_2 ~start:(text "@,") ~sep:(text "@ ") ~trailer:(text "@;<0 -2>")
     (format_statement false) f statements
 
 and format_pair f (name, term) =
@@ -123,22 +123,24 @@ and format_pairs f pairs =
     format_pair f pairs
 
 and format_statement tail f = function
-  | Term term -> format f term
+  | Term term -> fprintf f
+     "@[<v 2>%a;@]" format term
   | IfElse (condition, consequence, [IfElse _ as nested_if_else]) -> fprintf f
       "%aif (%a) {%a@]@[<v 2>} else %a"
-        box tail format condition
+        box tail
+        format condition
         format_statements consequence
         (format_statement true) nested_if_else
   | IfElse (condition, consequence, alternative) -> fprintf f
-      "%aif (%a) {%a@]@[<v 2>} else {%a}@]"
+      "%aif (%a) {%a@]@[<v 2>} else {%a}"
         box tail
         format condition
         format_statements consequence
         format_statements alternative
   | Return term -> fprintf f
-      "return %a" format term
+      "@[<v 2>return %a;@]" format term
   | Var (name, term) -> fprintf f
-      "var %s = %a" name format term
+      "@[<v 2>var %s = %a;@]" name format term
 
 and format f =
   format_precedence (-1) f
@@ -164,7 +166,7 @@ and format_precedence outer_precedence f ast =
     | Member (value, member) -> fprintf f
         "%a[%a]" format_rec value format_rec member
     | Function (name, parameters, body) -> fprintf f
-        "@[<v 2>function %s(%a) {%a}@]" (default name "")
+        "function %s(%a) {%a}" (default name "")
                                         (format_list format_string) parameters
                                         format_statements body
     | Object pairs -> fprintf f
