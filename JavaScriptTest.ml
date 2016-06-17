@@ -162,7 +162,7 @@ let () = test "Integration" @@ fun () ->
     }
     })();
   });"
-(*
+(* Wish:
   (function (factorial) {
     return console.log(factorial(5));
   })(function factorial(n) {
@@ -175,3 +175,26 @@ let () = test "Integration" @@ fun () ->
     })();
   })
 *)
+
+let () = test "Integration: Mail client" @@ fun () ->
+  statement_to_string (
+    Var ("Client", (Function (Some "Client", ["api_key"], [
+      Var ("api_key", Identifier "api_key");
+      Var ("send", (Function (None, ["mail"], [
+        Return (Call (Member (Identifier "console", String "log"), [
+          Infix (String "sent to ", Op.Plus, Identifier "mail_to");
+        ]));
+      ])));
+      Return (Object [
+        ("api_key", Identifier "api_key");
+        ("send", Identifier "send");
+      ]);
+    ])))
+  ) => "\
+var Client = function Client(api_key) {
+  var api_key = api_key;
+  var send = function (mail) {
+    return console.log(\"sent to \" + mail_to);
+  };
+  return {api_key: api_key, send: send};
+};"
