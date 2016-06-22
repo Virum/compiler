@@ -20,13 +20,13 @@ module Operator = struct
     | And            -> "&&"
     | Or             -> "||"
 
-  let precedence = function
-    | Plus | Minus -> 13
-    | Times | Divide -> 14
-    | Equal | NotEqual -> 10
-    | Less | Greater | LessOrEqual | GreaterOrEqual -> 11
-    | And -> 6
-    | Or -> 5
+  let binding = function
+    | Plus | Minus -> `None 13
+    | Times | Divide -> `None 14
+    | Equal | NotEqual -> `None 10
+    | Less | Greater | LessOrEqual | GreaterOrEqual -> `None 11
+    | And -> `None 6
+    | Or -> `None 5
 end
 
 type parameters = string list
@@ -49,12 +49,12 @@ and statement =
   | IfElse of term * statement list * statement list
   | Var of string * term
 
-let precedence = function
-  | Number _ | Identifier _ | String _ | Object _ -> 999
-  | Infix (_, operator, _) -> Operator.precedence operator
-  | Call _ -> 17
-  | Member _ -> 18
-  | Function _ -> 0
+let binding = function
+  | Number _ | Identifier _ | String _ | Object _ -> `None 999
+  | Infix (_, operator, _) -> Operator.binding operator
+  | Call _ -> `None 17
+  | Member _ -> `None 18
+  | Function _ -> `None 0
 
 let format_list ?(sep=", ") ?(trailer="") format_item f list =
   let pp_sep f () = fprintf f "%s" sep in
@@ -91,6 +91,7 @@ let escape_char char =
   | '\b' -> "\\" ^ "b"
   | '\n' -> "\\" ^ "n"
   | '\r' -> "\\" ^ "r"
+  | '\t' -> "\\" ^ "t"
   | _ when code < 32 || code = 127 -> Printf.sprintf "\\u%.4x" code
   | _ -> Printf.sprintf "%c" char
 
@@ -111,7 +112,6 @@ let format_string = Format.pp_print_string
 let box f tail = if tail then text "" f () else text "@[<v 2>" f ()
 
 let rec format_statements f statements =
-(*   format_list ~sep:"; " ~trailer:";" format_statement f statements *)
   format_list_2 ~start:(text "@,") ~sep:(text "@ ") ~trailer:(text "@;<0 -2>")
     (format_statement false) f statements
 
@@ -142,44 +142,34 @@ and format_statement tail f = function
   | Var (name, term) -> fprintf f
       "@[<v 2>var %s = %a;@]" name format term
 
+and format_term f format_left format_right = function
+  | Identifier id -> fprintf f
+      "%s" id
+  | Number float -> fprintf f
+      "%F" float
+  | String string -> fprintf f
+      "%s" (escape_string string)
+  | Infix (left, operator, right) -> fprintf f
+      "%a %s %a" format_left left
+                 (Operator.to_string operator)
+                 format_right right
+  | Call (callee, arguments) -> fprintf f
+      "%a(%a)" format_left callee (format_list format) arguments
+  | Member (value, String string) when is_valid_identifier string -> fprintf f
+      "%a.%s" format_left value string
+  | Member (value, member) -> fprintf f
+      "%a[%a]" format_left value format member
+  | Function (name, parameters, body) -> fprintf f
+      "function %s(%a) {%a}" (default name "")
+                             (format_list format_string) parameters
+                             format_statements body
+  | Object pairs -> fprintf f
+      "@[<hv 2>{%a}@]" format_pairs pairs
+
 and format f =
-  format_precedence (-1) f
-
-and format_precedence outer_precedence f ast =
-  let inner_precedence = precedence ast in
-  let format_rec = format_precedence inner_precedence in
-  let format_ast f = function
-    | Identifier id -> fprintf f
-        "%s" id
-    | Number float -> fprintf f
-        "%F" float
-    | String string -> fprintf f
-        "%s" (escape_string string)
-    | Infix (left, operator, right) -> fprintf f
-        "%a %s %a" format_rec left
-                   (Operator.to_string operator)
-                   format_rec right
-    | Call (callee, arguments) -> fprintf f
-        "%a(%a)" format_rec callee (format_list (format_precedence (-1))) arguments
-    | Member (value, String string) when is_valid_identifier string -> fprintf f
-        "%a.%s" format_rec value string
-    | Member (value, member) -> fprintf f
-        "%a[%a]" format_rec value format_rec member
-    | Function (name, parameters, body) -> fprintf f
-        "function %s(%a) {%a}" (default name "")
-                                        (format_list format_string) parameters
-                                        format_statements body
-    | Object pairs -> fprintf f
-        "@[<hv 2>{%a}@]" format_pairs pairs
-  in
-    if outer_precedence > inner_precedence
-      then fprintf f "(%a)" format_ast ast
-      else format_ast f ast
-
-
+  Render.make_format ~binding ~format_naive:format_term ~precedence:0 f
 
 let a, b, c, d = Identifier "a", Identifier "b", Identifier "c", Identifier "d"
-
 
 let to_string ast = Format.asprintf "%a" format ast
 let statement_to_string st = Format.asprintf "%a" (format_statement false) st
