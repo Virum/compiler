@@ -1,6 +1,7 @@
 let fprintf = Format.fprintf
 module Option = Core_kernel.Option
 let text, format_list, format_string = Render.(text, format_list, format_string)
+let format_comma_separated = Render.format_comma_separated
 
 module Operator = struct
   type t =
@@ -67,10 +68,6 @@ let rec format_statements f statements =
 and format_pair f (name, term) =
   fprintf f "%s: %a" name format_term term
 
-and format_pairs f pairs =
-  format_list ~start:(text "@,") ~sep:(text ",@ ") ~trailer:(text "@;<0 -2>")
-    format_pair f pairs
-
 and format_statement tail f = function
   | Term term -> fprintf f
      "@[<v 2>%a;@]" format_term term
@@ -98,13 +95,11 @@ and format_term_naive f format_left format_right = function
       "%F" float
   | String string -> fprintf f
       "%s" (Render.escape_string string)
-  | Infix (left, operator, right) -> fprintf f
-      "%a %s %a" format_left left
-                 (Operator.to_string operator)
-                 format_right right
+  | Infix (left, op, right) -> fprintf f
+      "%a %s %a" format_left left (Operator.to_string op) format_right right
   | Call (callee, arguments) -> fprintf f
       "%a(@[<hv>%a@])" format_left callee
-                       (Render.format_comma_separated format_term) arguments
+                       (format_comma_separated format_term) arguments
   | Member (value, String string)
     when Render.is_valid_identifier string -> fprintf f
       "%a.%s" format_left value string
@@ -113,10 +108,11 @@ and format_term_naive f format_left format_right = function
   | Function (name, parameters, body) -> fprintf f
       "function %s(@[<hv>%a@]) {%a}"
         (Option.value ~default:"" name)
-        (Render.format_comma_separated format_string) parameters
+        (format_comma_separated format_string) parameters
         format_statements body
   | Object pairs -> fprintf f
-      "@[<hv 2>{%a}@]" format_pairs pairs
+      "@[<hv 2>{@,%a@;<0 -2>}@]"
+        (format_comma_separated format_pair) pairs
 
 and format_term f =
   Render.make_infix_format
