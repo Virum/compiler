@@ -1,3 +1,5 @@
+module String = Core_kernel.Std.String
+
 module Result = struct
   module Infix = struct
     let (>>=) = function
@@ -24,11 +26,13 @@ end
 open Result.Infix
 
 let () =
+  let file_name = Sys.argv.(1) in
+  let module_name = String.chop_suffix_exn file_name ~suffix:".virum" in
   let result =
-    Parser.Items.parse_channel stdin
-      >>| (fun items -> Syntax.Module ("Virum", items))
-      >>| Compiler.compile
-      >>| JavaScript.statement_to_string
+    Parser.Items.parse_channel (open_in file_name)
+      >>| (fun items -> Syntax.Module (module_name, items))
+      >>| ToJavaScript.compile
+      >>| JavaScript.to_string
   in
   result
     |> Result.map_error Error.to_string

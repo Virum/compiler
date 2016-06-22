@@ -4,8 +4,8 @@ let (test), (=>) = Test.(test, (=>))
 module JS = JavaScript
 module V = Syntax
 
-let term = Compiler.Term.compile
-let item = Compiler.compile
+let term = ToJavaScript.Term.compile
+let item = ToJavaScript.compile
 
 let () = test "Atoms" @@ fun () ->
   term (V.Number 1) => JS.Number 1.;

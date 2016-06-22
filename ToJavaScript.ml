@@ -1,3 +1,4 @@
+module List = Core_kernel.Std.List
 
 module V = Syntax
 module JS = JavaScript
@@ -54,12 +55,9 @@ module Term = struct
         let operator = Operator.compile operator in
         JS.(Infix (compile left, operator, compile right))
     | V.Call (callee, arguments) ->
-        JS.(Call (compile callee, List.map compile arguments))
+        JS.(Call (compile callee, List.map ~f:compile arguments))
     | _ -> assert false
 end
-
-module List = Core_kernel.Std.List
-
 
 let bindings statements = List.filter_map statements ~f:(function
   | V.Let (name, _) | V.Module (name, _) | V.Class (name, _, _) -> Some name
