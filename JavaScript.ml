@@ -23,12 +23,12 @@ module Operator = struct
     | Or             -> "||"
 
   let binding = function
-    | Plus | Minus -> `None 13
-    | Times | Divide -> `None 14
-    | Equal | NotEqual -> `None 10
-    | Less | Greater | LessOrEqual | GreaterOrEqual -> `None 11
-    | And -> `None 6
-    | Or -> `None 5
+    | Plus | Minus -> `Left 13
+    | Times | Divide -> `Left 14
+    | Equal | NotEqual -> `Left 10
+    | Less | Greater | LessOrEqual | GreaterOrEqual -> `Left 11
+    | And -> `Left 6
+    | Or -> `Left 5
 end
 
 type parameters = string list
@@ -54,8 +54,8 @@ and statement =
 let binding = function
   | Number _ | Identifier _ | String _ | Object _ -> `None 999
   | Infix (_, operator, _) -> Operator.binding operator
-  | Call _ -> `None 17
-  | Member _ -> `None 18
+  | Call _ -> `Left 17
+  | Member _ -> `Left 18
   | Function _ -> `None 0
 
 let box f tail = if tail then text "" f () else text "@[<v 2>" f ()

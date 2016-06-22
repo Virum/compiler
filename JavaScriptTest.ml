@@ -14,20 +14,20 @@ let () = test "String" @@ fun () ->
   to_string (Term (String "hello\x00world")) => {|"hello\u0000world";|}
 
 let () = test "Infix" @@ fun () ->
-  to_string (Term (Infix (Number 1.0, Op.Plus, Number 2.0)))
-    => "1. + 2.;";
-  to_string (Term (Infix (Number 1.0,
-                          Op.Plus,
-                          (Infix (Number 2.0,
-                                  Op.Times,
-                                  Number 3.0)))))
-    => "1. + 2. * 3.;";
-  to_string (Term (Infix (Infix (Number 1.0,
-                                 Op.Plus,
-                                 Number 2.0),
-                          Op.Times,
-                          Number 3.0)))
-    => "(1. + 2.) * 3.;"
+  let (+) left right = Infix (left, Op.Plus, right) in
+  let (/) left right = Infix (left, Op.Divide, right) in
+  to_string (Term (a + b))
+    => "a + b;";
+  to_string (Term (a + b / c))
+    => "a + b / c;";
+  to_string (Term ((a + b) / c))
+    => "(a + b) / c;";
+  to_string (Term (a / b / c))
+    => "a / b / c;";
+  to_string (Term (a / (b / c)))
+    => "a / (b / c);";
+  to_string (Term (a / (b / (c / d))))
+    => "a / (b / (c / d));"
 
 let () = test "Call" @@ fun () ->
   to_string (Term (Call (a, [])))
