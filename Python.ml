@@ -23,7 +23,6 @@ module Operator = struct
     | Or             -> "or"
 
   let binding = function
-    (* Lambda -> `Left 1 *)
     | Plus | Minus -> `Left 11
     | Times | Divide -> `Left 12
     | Equal | NotEqual
@@ -43,6 +42,8 @@ type term =
   | Infix of term * Operator.t * term
   | Dict of (term * term) list
   | Tuple of term list
+  | Lambda of parameters * term
+  | IfElse of {consequence: term; condition: term; alternative: term}
 
 and arguments = term list
 
@@ -54,7 +55,8 @@ and statement =
   | Term of term
   | If of term * block * if_tail
   | Assignment of term * term
-  | Def of string * parameters * statement list
+  | Def of string option * string * parameters * statement list
+  | Class of string * string * statement list
 
 and if_tail =
   | Else of block
@@ -65,6 +67,8 @@ let binding = function
   | Infix (_, operator, _) -> Operator.binding operator
   | Call _
   | Member _ -> `Left 15
+  | IfElse _ -> `Left 2
+  | Lambda _ -> `Left 1
 
 let rec format_pair f (left, right) =
   fprintf f "%a: %a" format_term left format_term right
@@ -89,10 +93,24 @@ and format_term_naive f format_left format_right = function
       "(%a,)" format_term singleton
   | Tuple items -> fprintf f
       "@[<hv 4>(@,%a@;<0 -4>)@]" (format_comma_separated format_term) items
+  | Lambda (arguments, term) -> fprintf f
+      "lambda%a: %a"
+        (format_list ~start:(text " ") ~sep:(text ", ") format_string) arguments
+        format_right term
+  | IfElse {consequence; condition; alternative} -> fprintf f
+      "%a if %a else %a"
+        format_left consequence
+        format_term condition
+        format_right alternative
 
 and format_term f =
   Render.make_infix_format
     ~binding ~format_naive:format_term_naive ~precedence:0 f
+
+let format_decorator f = function
+  | Some decorator -> fprintf f
+      "@%s@;<0 -4>" decorator
+  | None -> ()
 
 let rec format_statement f = function
   | Pass -> fprintf f
@@ -103,10 +121,11 @@ let rec format_statement f = function
       "return %a" format_term term
   | Assignment (left, right) -> fprintf f
       "%a = %a" format_term left format_term right
-  | Def (name, parameters, []) ->
-      format_statement f (Def (name, parameters, [Pass]))
-  | Def (name, parameters, body) -> fprintf f
-      "@[<v 4>def %s(@[<hv>%a@]):@,%a@]"
+  | Def (decorator, name, parameters, []) ->
+      format_statement f (Def (decorator, name, parameters, [Pass]))
+  | Def (decorator, name, parameters, body) -> fprintf f
+      "@[<v 4>%adef %s(@[<hv>%a@]):@,%a@]"
+        format_decorator decorator
         name
         (format_comma_separated format_string) parameters
         (format_list ~sep:(text "@,") format_statement) body
@@ -115,6 +134,11 @@ let rec format_statement f = function
         format_term condition
         format_block body
         format_tail tail
+  | Class (name, superclass, body) -> fprintf f
+      "@[<v 4>class %s(%s):@,%a@]"
+        name
+        superclass
+        (format_list ~sep:(text "\n@,") format_statement) body
 
 and format_tail f = function
   | Else block -> fprintf f
@@ -132,3 +156,4 @@ and format_block f statements =
 let a, b, c, d = Identifier "a", Identifier "b", Identifier "c", Identifier "d"
 
 let to_string = Format.asprintf "%a" format_statement
+let print statement = print_endline (to_string statement)

@@ -61,6 +61,18 @@ let () = test "Tuple" @@ fun () ->
     this_tuple_is_just_too_long_for_one_line
 )"
 
+let () = test "Lambda" @@ fun () ->
+  to_string (Term (Lambda ([], a)))
+    => "lambda: a";
+  to_string (Term (Lambda (["x"], a)))
+    => "lambda x: a";
+  to_string (Term (Lambda (["x"; "y"; "z"], a)))
+    => "lambda x, y, z: a"
+
+let () = test "If-else" @@ fun () ->
+  to_string (Term (IfElse {consequence=a; condition=b; alternative=c}))
+    => "a if b else c"
+
 let () = test "Return" @@ fun () ->
   to_string (Return a)
     => "return a"
@@ -72,19 +84,41 @@ let () = test "Assignment" @@ fun () ->
     => "a.b = c"
 
 let () = test "Def" @@ fun () ->
-  to_string (Def ("foo", [], []))
+  to_string (Def (None, "foo", [], []))
     => "\
 def foo():
     pass";
-  to_string (Def ("foo", ["a"; "b"; "c"], []))
+  to_string (Def (None, "foo", ["a"; "b"; "c"], []))
     => "\
 def foo(a, b, c):
     pass";
-  to_string (Def ("foo", ["a"; "b"; "c"], [Pass; Pass]))
+  to_string (Def (None, "foo", ["a"; "b"; "c"], [Pass; Pass]))
     => "\
 def foo(a, b, c):
     pass
+    pass";
+  to_string (Def (Some "apply", "foo", ["a"; "b"; "c"], []))
+    => "\
+@apply
+def foo(a, b, c):
     pass"
+
+let () = test "Class" @@ fun () ->
+  to_string (Class ("foo", "object", [
+    Def (None, "__init__", ["self"; "a"; "b"], [
+      Pass
+    ]);
+    Def (None, "bar", ["self"], [
+      Pass
+    ]);
+  ]))
+    => "\
+class foo(object):
+    def __init__(self, a, b):
+        pass
+
+    def bar(self):
+        pass"
 
 let () = test "If-else" @@ fun () ->
   to_string (If (a, [], Else []))
@@ -106,7 +140,7 @@ else:
 
 let () = test "Integration" @@ fun () ->
   let n = Identifier "n" in
-  to_string (Def ("factorial", ["n"], [
+  to_string (Def (None, "factorial", ["n"], [
     If (Infix (n, Op.Equal, Number 0.0), [
       Return (Number 1.0);
     ], Else [
