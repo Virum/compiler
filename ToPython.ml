@@ -62,6 +62,9 @@ let bindings statements = List.filter_map statements ~f:(function
 
 let rec compile = function
 
+  | V.Let (name, V.CaseFunction [(parameter, term)]) ->
+      Py.(Def (None, name, [parameter], [Return (Term.compile term)]))
+
   | V.Let (name, term) ->
       Py.(Assignment (Identifier name, Term.compile term))
 

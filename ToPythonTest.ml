@@ -37,6 +37,12 @@ let () = test "Let" @@ fun () ->
   item V.(Let ("a", b))
     => Py.(Assignment (a, b))
 
+let () = test "Let case-function" @@ fun () ->
+  item V.(Let ("a", CaseFunction [("parameter", b)]))
+    => Py.(Def (None, "a", ["parameter"], [
+         Return b;
+    ]))
+
 let () = test "Do" @@ fun () ->
   item V.(Do (Call (a, [])))
     => Py.(Term (Call (a, [])))
