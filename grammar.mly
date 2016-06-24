@@ -36,8 +36,8 @@
 parse_items: item* EOF { $1 }
 
 item:
-| LET left=pattern EQUAL right=term
-  { Let (left, right) }
+| LET left=pattern parameters=parameters? EQUAL right=term
+  { Let (left, parameters, right) }
 | DO term=term
   { Do term }
 | MODULE name=ID body=braced(item*)

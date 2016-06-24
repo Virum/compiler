@@ -44,8 +44,8 @@ let () = test "Module" @@ fun () ->
          Return (Object []);
        ]), []))));
   item V.(Module ("foo", [
-    Let ("a", b);
-    Let ("b", c);
+    Let ("a", None, b);
+    Let ("b", None, c);
   ]))
     => JS.(Var ("foo", (Call (Function (Some "foo", [], [
          Var ("a", b);
@@ -68,18 +68,17 @@ let () = test "Module" @@ fun () ->
        ]), []))))
 
 let () = test "Let" @@ fun () ->
-  item V.(Let ("a", b))
-    => JS.(Var ("a", b))
+  item V.(Let ("a", None, b))
+    => JS.(Var ("a", b));
+  item V.(Let ("a", Some [], b))
+    => JS.(Term (Function (Some "a", [], [Return b])));
+  item V.(Let ("a", Some ["b"; "c"], d))
+    => JS.(Term (Function (Some "a", ["b"; "c"], [Return d])))
 
 let () = test "Class" @@ fun () ->
-  print_endline "";
   item V.(Class ("Foo", ["a"; "b"], [
     Do (Call (a, []));
-    Let ("b", b);
-  ])) |> JS.print;
-  item V.(Class ("Foo", ["a"; "b"], [
-    Do (Call (a, []));
-    Let ("b", b);
+    Let ("b", None, b);
   ]))
     => JS.(Var ("Foo", Function (Some "Foo", ["a"; "b"], [
          IfElse (

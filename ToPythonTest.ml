@@ -34,14 +34,16 @@ let () = test "Call" @@ fun () ->
 (* ITEM *)
 
 let () = test "Let" @@ fun () ->
-  item V.(Let ("a", b))
-    => Py.(Assignment (a, b))
-
-let () = test "Let case-function" @@ fun () ->
-  item V.(Let ("a", CaseFunction [("parameter", b)]))
-    => Py.(Def (None, "a", ["parameter"], [
+  item V.(Let ("a", None, b))
+    => Py.(Assignment (a, b));
+  item V.(Let ("a", Some [], b))
+    => Py.(Def (None, "a", [], [
          Return b;
-    ]))
+       ]));
+  item V.(Let ("a", Some ["b"; "c"], d))
+    => Py.(Def (None, "a", ["b"; "c"], [
+         Return d;
+       ]))
 
 let () = test "Do" @@ fun () ->
   item V.(Do (Call (a, [])))
@@ -57,8 +59,8 @@ let () = test "Module" @@ fun () ->
          ]), []))
        ]));
   item V.(Module ("foo", [
-    Let ("a", b);
-    Let ("b", c);
+    Let ("a", None, b);
+    Let ("b", None, c);
   ]))
     => Py.(Def (Some "apply", "foo", [], [
          Assignment (a, b);
@@ -76,7 +78,7 @@ let () = test "Module" @@ fun () ->
 let () = test "Class" @@ fun () ->
   item V.(Class ("Foo", ["a"; "b"], [
     Do (Call (a, []));
-    Let ("b", b);
+    Let ("b", None, b);
   ]))
     => Py.(Class ("Foo", "object", [
          Def (None, "__init__", ["self"; "a"; "b"], [

@@ -56,12 +56,6 @@ let () = test "LetIn" @@ fun () ->
   term "let a = b in c"
     => Ok (LetIn ("a", b, c))
 
-(*
-let () = test "Let function" @@ fun () ->
-  term "let a() = b"
-    => Ok (LetFunction ("a", [], b))
-*)
-
 let () = test "Infix operators" @@ fun () ->
   term "a + b"     => Ok (Infix (a, Plus, b));
   term "a + b * c" => Ok (Infix (a, Plus, Infix (b, Times, c)));
@@ -103,10 +97,18 @@ let () = test "Items" @@ fun () ->
          let x = let y = a in b
          do a"
     => Ok [
-      Let ("x", a);
-      Let ("x", LetIn ("y", a, b));
+      Let ("x", None, a);
+      Let ("x", None, LetIn ("y", a, b));
       Do a;
     ]
+
+let () = test "Let" @@ fun () ->
+  items "let x = a"
+    => Ok [Let ("x", None, a)];
+  items "let x() = a"
+    => Ok [Let ("x", Some [], a)];
+  items "let x(a, b, c) = a"
+    => Ok [Let ("x", Some ["a"; "b"; "c"], a)]
 
 let () = test "Module" @@ fun () ->
   items "
@@ -117,8 +119,8 @@ let () = test "Module" @@ fun () ->
     }
   " => Ok [
          Module ("foo", [
-           Let ("x", a);
-           Let ("x", LetIn ("y", a, b));
+           Let ("x", None, a);
+           Let ("x", None, LetIn ("y", a, b));
            Do a;
          ])
        ]
@@ -132,6 +134,6 @@ let () = test "Class" @@ fun () ->
     let x = a
     let y = b
   }" => Ok [Class ("Foo", [], [
-    Let ("x", a);
-    Let ("y", b);
+    Let ("x", None, a);
+    Let ("y", None, b);
   ])]

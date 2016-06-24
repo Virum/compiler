@@ -88,7 +88,13 @@ let rec compile_namespace ~name ~parameters ~body =
 and compile = function
   | V.Module (name, body) ->
       JS.(Var (name, (Call (compile_namespace ~name ~parameters:[] ~body, []))))
-  | V.Let (name, term) -> JS.(Var (name, Term.compile term))
+
+  | V.Let (name, None, term) ->
+      JS.(Var (name, Term.compile term))
+
+  | V.Let (name, Some parameters, term) ->
+      JS.(Term (Function (Some name, parameters, [Return (Term.compile term)])))
+
   | V.Do term -> JS.Term (Term.compile term)
   | V.Class (name, parameters, body) ->
       let body' = List.map body ~f:compile in

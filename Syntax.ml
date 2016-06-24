@@ -27,7 +27,7 @@ and case = pattern * term
 
 
 type item =
-  | Let of pattern * term
+  | Let of pattern * pattern list option * term
   | Do of term
   | Module of string * item list
   | Class of string * pattern list * item list
@@ -43,5 +43,5 @@ let dump_item t = print_string (Sexplib.Sexp.to_string_hum (sexp_of_item t))
 
 
 let bindings = List.filter_map ~f:(function
-  | Let (name, _) | Module (name, _) | Class (name, _, _) -> Some name
+  | Let (name, _, _) | Module (name, _) | Class (name, _, _) -> Some name
   | Do _ -> None)

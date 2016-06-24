@@ -58,11 +58,11 @@ end
 
 let rec compile = function
 
-  | V.Let (name, V.CaseFunction [(parameter, term)]) ->
-      Py.(Def (None, name, [parameter], [Return (Term.compile term)]))
-
-  | V.Let (name, term) ->
+  | V.Let (name, None, term) ->
       Py.(Assignment (Identifier name, Term.compile term))
+
+  | V.Let (name, Some parameters, term) ->
+      Py.(Def (None, name, parameters, [Return (Term.compile term)]))
 
   | V.Do term ->
       Py.Term (Term.compile term)
