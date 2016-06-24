@@ -43,6 +43,14 @@ let () = test "Call" @@ fun () ->
 a(parameters_too_long_to_fit_on_a_single_line,
   parameters_too_long_to_fit_on_a_single_line);"
 
+let () = test "Prefix" @@ fun () ->
+  to_string (Term (Prefix (Operator.Prefix.Not, a)))
+    => "!a;";
+  to_string (Term (Prefix (Operator.Prefix.Typeof, a)))
+    => "typeof a;";
+  to_string (Term (Prefix (Operator.Prefix.New, a)))
+    => "new a;"
+
 let () = test "Member access" @@ fun () ->
   to_string (Term (Member (a, b)))
     => "a[b];";

@@ -56,10 +56,6 @@ module Term = struct
     | _ -> assert false
 end
 
-let bindings statements = List.filter_map statements ~f:(function
-  | V.Let (name, _) | V.Module (name, _) | V.Class (name, _, _) -> Some name
-  | V.Do _ -> None)
-
 let rec compile = function
 
   | V.Let (name, V.CaseFunction [(parameter, term)]) ->
@@ -74,7 +70,7 @@ let rec compile = function
   | V.Module (name, body) ->
       let body' = List.map body ~f:compile in
       let name_to_pair name = Py.(String name, Identifier name) in
-      let dict = List.map (bindings body) ~f:name_to_pair in
+      let dict = List.map (V.bindings body) ~f:name_to_pair in
       Py.(Def (Some "apply", name, [], body' @ [
          Return (Call (Call (Identifier "type", [
            String name;
@@ -89,6 +85,6 @@ let rec compile = function
         Py.(Assignment (Member (Identifier "self", name), Identifier name)) in
       Py.(Class (name, "object", [
         Def (None, "__init__", ["self"] @ parameters, body' @
-          List.map (bindings body) ~f:name_to_pair
+          List.map (V.bindings body) ~f:name_to_pair
         );
       ]))

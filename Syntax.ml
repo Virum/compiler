@@ -1,3 +1,4 @@
+module List = Core_kernel.Std.List
 open Sexplib.Std
 
 type pattern = string
@@ -39,3 +40,8 @@ let a, b, c, d = Identifier "a", Identifier "b", Identifier "c", Identifier "d"
 let dump t = print_string (Sexplib.Sexp.to_string_hum (sexp_of_term t))
 
 let dump_item t = print_string (Sexplib.Sexp.to_string_hum (sexp_of_item t))
+
+
+let bindings = List.filter_map ~f:(function
+  | Let (name, _) | Module (name, _) | Class (name, _, _) -> Some name
+  | Do _ -> None)

@@ -59,14 +59,30 @@ module Term = struct
     | _ -> assert false
 end
 
-let bindings statements = List.filter_map statements ~f:(function
-  | V.Let (name, _) | V.Module (name, _) | V.Class (name, _, _) -> Some name
-  | V.Do _ -> None)
+
+let compile_prelude name =
+  let open JS in let module Op = JS.Operator in
+  IfElse (
+    Prefix (Op.Prefix.Not, (Infix (id "this", Op.Instanceof, id name))),
+    [
+      Return (
+        Prefix (
+          Op.Prefix.New,
+          Call (
+            Member (
+              Member (
+                Member (id "Function", String "prototype"),
+                String "bind"),
+              String "apply"),
+            [id name; id "arguments"])));
+    ],
+    []
+  )
 
 let rec compile_namespace ~name ~parameters ~body =
   let body' = List.map body ~f:compile in
   let name_to_pair name = (name, JS.Identifier name) in
-  let object' = List.map (bindings body) ~f:name_to_pair in
+  let object' = List.map (V.bindings body) ~f:name_to_pair in
   JS.(Function (Some name, parameters, body' @ [Return (Object object')]))
 
 and compile = function
@@ -75,4 +91,11 @@ and compile = function
   | V.Let (name, term) -> JS.(Var (name, Term.compile term))
   | V.Do term -> JS.Term (Term.compile term)
   | V.Class (name, parameters, body) ->
-      JS.(Var (name, compile_namespace ~name ~parameters ~body))
+      let body' = List.map body ~f:compile in
+      let name_to_pair name =
+        JS.(Term (Infix (Member (Identifier "this", String name),
+                         Operator.Assignment,
+                         Identifier name))) in
+      JS.(Var (name, Function (Some name, parameters,
+        compile_prelude name :: body' @ List.map (V.bindings body) ~f:name_to_pair
+      )))

@@ -72,13 +72,39 @@ let () = test "Let" @@ fun () ->
     => JS.(Var ("a", b))
 
 let () = test "Class" @@ fun () ->
+  print_endline "";
+  item V.(Class ("Foo", ["a"; "b"], [
+    Do (Call (a, []));
+    Let ("b", b);
+  ])) |> JS.print;
   item V.(Class ("Foo", ["a"; "b"], [
     Do (Call (a, []));
     Let ("b", b);
   ]))
     => JS.(Var ("Foo", Function (Some "Foo", ["a"; "b"], [
+         IfElse (
+           Prefix (Operator.Prefix.Not, (Infix (Identifier "this",
+                                         Operator.Instanceof,
+                                         Identifier "Foo"))), [
+           Return (
+             Prefix (
+               Operator.Prefix.New,
+               Call (
+                 Member (
+                   Member (
+                     Member(
+                       Identifier "Function",
+                       String "prototype"),
+                     String "bind"),
+                   String "apply"),
+                 [Identifier "Foo"; Identifier "arguments"])));
+         ],
+         []);
+
          Term (Call (a, []));
          Var ("b", b);
-         Return (Object [("b", b)]);
-       ])))
 
+         Term (Infix (Member (Identifier "this", String "b"),
+                      Operator.Assignment,
+                      b));
+       ])))

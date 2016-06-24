@@ -8,6 +8,7 @@ module Operator = struct
     | Plus | Minus | Times | Divide | Equal | NotEqual
     | Less | Greater | LessOrEqual | GreaterOrEqual
     | And | Or
+    | Assignment | Instanceof
 
   let to_string = function
     | Plus           -> "+"
@@ -22,14 +23,33 @@ module Operator = struct
     | GreaterOrEqual -> ">="
     | And            -> "&&"
     | Or             -> "||"
+    | Assignment     -> "="
+    | Instanceof     -> "instanceof"
 
   let binding = function
     | Plus | Minus -> `Left 13
     | Times | Divide -> `Left 14
     | Equal | NotEqual -> `Left 10
-    | Less | Greater | LessOrEqual | GreaterOrEqual -> `Left 11
+    | Less | Greater | LessOrEqual | GreaterOrEqual | Instanceof -> `Left 11
     | And -> `Left 6
     | Or -> `Left 5
+    | Assignment -> `Right 3
+
+  module Prefix = struct
+    type t = Not | Typeof | Delete | UnaryPlus | UnaryMinus | New
+
+    let binding = function
+      | Not | Typeof | Delete | UnaryPlus | UnaryMinus -> `Right 15
+      | New -> `Right 18
+
+    let to_string = function
+      | Not        -> "!"
+      | Typeof     -> "typeof "
+      | Delete     -> "delete "
+      | UnaryPlus  -> "+"
+      | UnaryMinus -> "-"
+      | New        -> "new "
+  end
 end
 
 type parameters = string list
@@ -42,6 +62,7 @@ type term =
   | Call of term * arguments
   | Member of term * term
   | Infix of term * Operator.t * term
+  | Prefix of Operator.Prefix.t * term
   | Object of (string * term) list
 
 and arguments = term list
@@ -55,6 +76,7 @@ and statement =
 let binding = function
   | Number _ | Identifier _ | String _ | Object _ -> `None 999
   | Infix (_, operator, _) -> Operator.binding operator
+  | Prefix (operator, _) -> Operator.Prefix.binding operator
   | Call _ -> `Left 17
   | Member _ -> `Left 18
   | Function _ -> `None 0
@@ -97,6 +119,8 @@ and format_term_naive f format_left format_right = function
       "%s" (Render.escape_string string)
   | Infix (left, op, right) -> fprintf f
       "%a %s %a" format_left left (Operator.to_string op) format_right right
+  | Prefix (op, term) -> fprintf f
+      "%s%a" (Operator.Prefix.to_string op) format_right term
   | Call (callee, arguments) -> fprintf f
       "%a(@[<hv>%a@])" format_left callee
                        (format_comma_separated format_term) arguments
@@ -118,6 +142,7 @@ and format_term f =
   Render.make_infix_format
     ~binding ~format_naive:format_term_naive ~precedence:0 f
 
+let id x = Identifier x
 let a, b, c, d = Identifier "a", Identifier "b", Identifier "c", Identifier "d"
 
 let to_string = Format.asprintf "%a" (format_statement false)
