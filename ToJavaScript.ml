@@ -79,15 +79,18 @@ let compile_prelude name =
     []
   )
 
-let rec compile_namespace ~name ~parameters ~body =
-  let body' = List.map body ~f:compile in
-  let name_to_pair name = (name, JS.Identifier name) in
-  let object' = List.map (V.bindings body) ~f:name_to_pair in
-  JS.(Function (Some name, parameters, body' @ [Return (Object object')]))
+let rec compile_module_body name body =
+  let compile_assignment name =
+    JS.(Term (Infix (Member (Identifier "this", String name),
+                     Operator.Assignment,
+                     Identifier name))) in
+  List.map body ~f:compile @ List.map (V.bindings body) ~f:compile_assignment
 
 and compile = function
   | V.Module (name, body) ->
-      JS.(Var (name, (Call (compile_namespace ~name ~parameters:[] ~body, []))))
+      JS.(Var (name, Prefix (Operator.Prefix.New, (Call (
+        Function (Some name, [], compile_module_body name body),
+      [])))))
 
   | V.Let (name, None, term) ->
       JS.(Var (name, Term.compile term))
@@ -95,13 +98,10 @@ and compile = function
   | V.Let (name, Some parameters, term) ->
       JS.(Term (Function (Some name, parameters, [Return (Term.compile term)])))
 
-  | V.Do term -> JS.Term (Term.compile term)
+  | V.Do term ->
+      JS.Term (Term.compile term)
+
   | V.Class (name, parameters, body) ->
-      let body' = List.map body ~f:compile in
-      let name_to_pair name =
-        JS.(Term (Infix (Member (Identifier "this", String name),
-                         Operator.Assignment,
-                         Identifier name))) in
       JS.(Var (name, Function (Some name, parameters,
-        compile_prelude name :: body' @ List.map (V.bindings body) ~f:name_to_pair
+        compile_prelude name :: compile_module_body name body
       )))

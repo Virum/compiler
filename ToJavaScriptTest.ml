@@ -2,6 +2,7 @@ let (test), (=>) = Test.(test, (=>))
 
 
 module JS = JavaScript
+module Op = JavaScript.Operator
 module V = Syntax
 
 let term = ToJavaScript.Term.compile
@@ -40,32 +41,48 @@ let () = test "Call" @@ fun () ->
 
 let () = test "Module" @@ fun () ->
   item V.(Module ("foo", []))
-    => JS.(Var ("foo", (Call (Function (Some "foo", [], [
-         Return (Object []);
-       ]), []))));
+    => JS.(Var ("foo", Prefix (Operator.Prefix.New, (Call (
+         Function (Some "foo", [], [
+
+         ]),
+       [])))));
   item V.(Module ("foo", [
     Let ("a", None, b);
     Let ("b", None, c);
   ]))
-    => JS.(Var ("foo", (Call (Function (Some "foo", [], [
-         Var ("a", b);
-         Var ("b", c);
-         Return (Object [("a", a); ("b", b)]);
-       ]), []))));
+    => JS.(Var ("foo", Prefix (Op.Prefix.New, (Call (
+         Function (Some "foo", [], [
+           Var ("a", b);
+           Var ("b", c);
+
+           Term (Infix (Member (id "this", String "a"), Op.Assignment, id "a"));
+           Term (Infix (Member (id "this", String "b"), Op.Assignment, id "b"));
+         ]),
+       [])))));
   item V.(Module ("foo", [
-    Module ("a", [])
+    Module ("bar", [])
   ]))
-    => JS.(Var ("foo", (Call (Function (Some "foo", [], [
-         Var ("a", Call (Function (Some "a", [], [Return (Object [])]), []));
-         Return (Object [("a", a)]);
-       ]), []))));
+    => JS.(Var ("foo", Prefix (Operator.Prefix.New, (Call (
+         Function (Some "foo", [], [
+
+           JS.(Var ("bar", Prefix (Operator.Prefix.New, (Call (
+             Function (Some "bar", [], [
+
+             ]),
+           [])))));
+
+           Term (Infix (Member (id "this", String "bar"),
+                        Op.Assignment, id "bar"));
+         ]),
+       [])))));
   item V.(Module ("foo", [
     Do (Call (Identifier "factorial", [Number 5]));
   ]))
-    => JS.(Var ("foo", (Call (Function (Some "foo", [], [
-         Term (Call (Identifier "factorial", [Number 5.]));
-         Return (Object []);
-       ]), []))))
+    => JS.(Var ("foo", Prefix (Operator.Prefix.New, (Call (
+         Function (Some "foo", [], [
+           Term (Call (Identifier "factorial", [Number 5.]));
+         ]),
+       [])))))
 
 let () = test "Let" @@ fun () ->
   item V.(Let ("a", None, b))
