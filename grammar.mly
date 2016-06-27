@@ -36,8 +36,8 @@
 parse_items: item* EOF { $1 }
 
 item:
-| LET left=pattern parameters=parameters? EQUAL right=term
-  { Let (left, parameters, right) }
+| LET left=pattern parameters=parameters? COLON type_=type_ EQUAL right=term
+  { Let ((left, type_), parameters, right) }
 | DO term=term
   { Do term }
 | MODULE name=ID body=braced(item*)
@@ -45,7 +45,11 @@ item:
 | CLASS name=ID parameters=parameters body=braced(item*)
   { Class (name, parameters, body) }
 
-parameters: parenthesised(comma_separated(pattern)) { $1 }
+type_: ID { $1 }
+typed(__x__): __x__ COLON type_ { ($1, $3) }
+
+parameters: parenthesised(comma_separated(typed(pattern))) { $1 }
+
 
 parse_term: term EOF { $1 }
 

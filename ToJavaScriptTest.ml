@@ -47,8 +47,8 @@ let () = test "Module" @@ fun () ->
          ]),
        [])))));
   item V.(Module ("foo", [
-    Let ("a", None, b);
-    Let ("b", None, c);
+    Let (("a", "T"), None, b);
+    Let (("b", "T"), None, c);
   ]))
     => JS.(Var ("foo", Prefix (Op.Prefix.New, (Call (
          Function (Some "foo", [], [
@@ -85,17 +85,17 @@ let () = test "Module" @@ fun () ->
        [])))))
 
 let () = test "Let" @@ fun () ->
-  item V.(Let ("a", None, b))
+  item V.(Let (("a", "T"), None, b))
     => JS.(Var ("a", b));
-  item V.(Let ("a", Some [], b))
+  item V.(Let (("a", "T"), Some [], b))
     => JS.(Term (Function (Some "a", [], [Return b])));
-  item V.(Let ("a", Some ["b"; "c"], d))
+  item V.(Let (("a", "T"), Some [("b", "T"); ("c", "T")], d))
     => JS.(Term (Function (Some "a", ["b"; "c"], [Return d])))
 
 let () = test "Class" @@ fun () ->
-  item V.(Class ("Foo", ["a"; "b"], [
+  item V.(Class ("Foo", [("a", "T"); ("b", "T")], [
     Do (Call (a, []));
-    Let ("b", None, b);
+    Let (("b", "T"), None, b);
   ]))
     => JS.(Var ("Foo", Function (Some "Foo", ["a"; "b"], [
          IfElse (

@@ -1,6 +1,9 @@
 module List = Core_kernel.Std.List
 open Sexplib.Std
 
+type 'a typed = 'a * string
+  [@@deriving sexp]
+
 type pattern = string
   [@@deriving sexp]
 
@@ -27,10 +30,10 @@ and case = pattern * term
 
 
 type item =
-  | Let of pattern * pattern list option * term
+  | Let of pattern typed * pattern typed list option * term
   | Do of term
   | Module of string * item list
-  | Class of string * pattern list * item list
+  | Class of string * pattern typed list * item list
   [@@deriving sexp]
 
 
@@ -43,5 +46,7 @@ let dump_item t = print_string (Sexplib.Sexp.to_string_hum (sexp_of_item t))
 
 
 let bindings = List.filter_map ~f:(function
-  | Let (name, _, _) | Module (name, _) | Class (name, _, _) -> Some name
+  | Let ((name, _), _, _) | Module (name, _) | Class (name, _, _) -> Some name
   | Do _ -> None)
+
+let parameter_names = List.map ~f:fst

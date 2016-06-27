@@ -92,16 +92,18 @@ and compile = function
         Function (Some name, [], compile_module_body name body),
       [])))))
 
-  | V.Let (name, None, term) ->
+  | V.Let ((name, _), None, term) ->
       JS.(Var (name, Term.compile term))
 
-  | V.Let (name, Some parameters, term) ->
+  | V.Let ((name, _), Some parameters, term) ->
+      let parameters = V.parameter_names parameters in
       JS.(Term (Function (Some name, parameters, [Return (Term.compile term)])))
 
   | V.Do term ->
       JS.Term (Term.compile term)
 
   | V.Class (name, parameters, body) ->
+      let parameters = V.parameter_names parameters in
       JS.(Var (name, Function (Some name, parameters,
         compile_prelude name :: compile_module_body name body
       )))

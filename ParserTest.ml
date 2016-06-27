@@ -93,34 +93,34 @@ let () = test "Integration: factorial" @@ fun () ->
   ]), Call (Identifier "print", [Call (Identifier "factorial", [Number 5])])))
 
 let () = test "Items" @@ fun () ->
-  items "let x = a
-         let x = let y = a in b
+  items "let x: X = a
+         let x: X = let y = a in b
          do a"
     => Ok [
-      Let ("x", None, a);
-      Let ("x", None, LetIn ("y", a, b));
+      Let (("x", "X"), None, a);
+      Let (("x", "X"), None, LetIn ("y", a, b));
       Do a;
     ]
 
 let () = test "Let" @@ fun () ->
-  items "let x = a"
-    => Ok [Let ("x", None, a)];
-  items "let x() = a"
-    => Ok [Let ("x", Some [], a)];
-  items "let x(a, b, c) = a"
-    => Ok [Let ("x", Some ["a"; "b"; "c"], a)]
+  items "let x: X = a"
+    => Ok [Let (("x", "X"), None, a)];
+  items "let x(): X = a"
+    => Ok [Let (("x", "X"), Some [], a)];
+  items "let x(a: A, b: B, c: C): X = a"
+    => Ok [Let (("x", "X"), Some [("a", "A"); ("b", "B"); ("c", "C")], a)]
 
 let () = test "Module" @@ fun () ->
   items "
     module foo {
-      let x = a
-      let x = let y = a in b
+      let x: X = a
+      let x: X = let y = a in b
       do a
     }
   " => Ok [
          Module ("foo", [
-           Let ("x", None, a);
-           Let ("x", None, LetIn ("y", a, b));
+           Let (("x", "X"), None, a);
+           Let (("x", "X"), None, LetIn ("y", a, b));
            Do a;
          ])
        ]
@@ -128,12 +128,12 @@ let () = test "Module" @@ fun () ->
 let () = test "Class" @@ fun () ->
   items "class Foo() {}"
     => Ok [Class ("Foo", [], [])];
-  items "class Foo(bar, baz) {}"
-    => Ok [Class ("Foo", ["bar"; "baz"], [])];
+  items "class Foo(bar: Bar, baz: Baz) {}"
+    => Ok [Class ("Foo", [("bar", "Bar"); ("baz", "Baz")], [])];
   items "class Foo() {
-    let x = a
-    let y = b
+    let x: X = a
+    let y: Y = b
   }" => Ok [Class ("Foo", [], [
-    Let ("x", None, a);
-    Let ("y", None, b);
+    Let (("x", "X"), None, a);
+    Let (("y", "Y"), None, b);
   ])]

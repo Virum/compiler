@@ -58,10 +58,11 @@ end
 
 let rec compile = function
 
-  | V.Let (name, None, term) ->
+  | V.Let ((name, _), None, term) ->
       Py.(Assignment (Identifier name, Term.compile term))
 
-  | V.Let (name, Some parameters, term) ->
+  | V.Let ((name, _), Some parameters, term) ->
+      let parameters = V.parameter_names parameters in
       Py.(Def (None, name, parameters, [Return (Term.compile term)]))
 
   | V.Do term ->
@@ -80,6 +81,7 @@ let rec compile = function
       ]))
 
   | V.Class (name, parameters, body) ->
+      let parameters = V.parameter_names parameters in
       let body' = List.map body ~f:compile in
       let name_to_pair name =
         Py.(Assignment (Member (Identifier "self", name), Identifier name)) in
