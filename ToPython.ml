@@ -46,8 +46,13 @@ module Term = struct
         let operator = Operator.compile operator in
         Py.(Infix (compile left, operator, compile right))
 
-    | V.Call (callee, arguments) ->
+    | V.Call (callee, V.Tuple arguments) ->
         Py.(Call (compile callee, List.map ~f:compile arguments))
+
+    | V.Call (callee, arguments) ->
+        (* TODO depending on type of arguments, it should be
+           either called as f(x) or apply(f, x) *)
+        Py.(Call (compile callee, [compile arguments]))
 
     | _ -> assert false
 end

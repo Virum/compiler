@@ -28,7 +28,11 @@ let () = test "Infix" @@ fun () ->
     => Py.(Infix (a, Operator.Times, b))
 
 let () = test "Call" @@ fun () ->
-  term V.(Call (a, [b; c]))
+  term V.(Call (a, Tuple []))
+    => Py.(Call (a, []));
+  term V.(Call (a, b))
+    => Py.(Call (a, [b]));
+  term V.(Call (a, Tuple [b; c]))
     => Py.(Call (a, [b; c]))
 
 (* ITEM *)
@@ -46,7 +50,7 @@ let () = test "Let" @@ fun () ->
        ]))
 
 let () = test "Do" @@ fun () ->
-  item V.(Do (Call (a, [])))
+  item V.(Do (Call (a, Tuple [])))
     => Py.(Term (Call (a, [])))
 
 let () = test "Module" @@ fun () ->
@@ -77,7 +81,7 @@ let () = test "Module" @@ fun () ->
 
 let () = test "Class" @@ fun () ->
   item V.(Class ("Foo", [("a", "T"); ("b", "T")], [
-    Do (Call (a, []));
+    Do (Call (a, Tuple []));
     Let (("b", "T"), None, b);
   ]))
     => Py.(Class ("Foo", "object", [

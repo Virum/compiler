@@ -44,13 +44,13 @@ let () = test "Infix" @@ fun () ->
 let () = test "Call()" @@ fun () ->
 
   infer [] ["f", Arrow (Tuple [], Tuple [])]
-      V.(Call (Identifier "f", []))
+      V.(Call (Identifier "f", Tuple []))
     => Ok (Tuple []);
 
   infer [] []
-      V.(Call (Identifier "f", []))
+      V.(Call (Identifier "f", Tuple []))
     => Error [`Unbound_identifier "f"];
 
   infer [] ["f", Number]
-      V.(Call (Identifier "f", []))
+      V.(Call (Identifier "f", Tuple []))
     => Error [`Not_a_function]

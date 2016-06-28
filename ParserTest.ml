@@ -61,17 +61,29 @@ let () = test "Infix operators" @@ fun () ->
   term "a + b * c" => Ok (Infix (a, Plus, Infix (b, Times, c)));
   term "a * b + c" => Ok (Infix (Infix (a, Times, b), Plus, c))
 
+let () = test "Tuples" @@ fun () ->
+  term "()"
+    => Ok (Tuple []);
+  term "(a)"
+    => Ok a; (* not a tuple *)
+  term "(a, b)"
+    => Ok (Tuple [a; b]);
+  term "(a, b,)"
+    => Ok (Tuple [a; b]);
+  term "(a, b, c)"
+    => Ok (Tuple [a; b; c])
+
 let () = test "Call" @@ fun () ->
   term "a()"
-    => Ok (Call (a, []));
+    => Ok (Call (a, Tuple []));
   term "a(b)"
-    => Ok (Call (a, [b]));
+    => Ok (Call (a, b));
   term "a(b, c)"
-    => Ok (Call (a, [b; c]));
+    => Ok (Call (a, Tuple [b; c]));
   term "a(b, c,)"
-    => Ok (Call (a, [b; c]));
+    => Ok (Call (a, Tuple [b; c]));
   term "a(b)(c)"
-    => Ok (Call (Call (a, [b]), [c]))
+    => Ok (Call (Call (a, b), c))
 
 let () = test "Integration: factorial" @@ fun () ->
   term "
@@ -86,11 +98,11 @@ let () = test "Integration: factorial" @@ fun () ->
     IfElse (
       Infix (Identifier "n", Equal, Number 0),
       Number 1,
-      Infix (Call (Identifier "factorial", [
+      Infix (Call (Identifier "factorial",
         Infix (Identifier "n", Minus, Number 1)
-      ]), Times, Identifier "n")
+      ), Times, Identifier "n")
     )
-  ]), Call (Identifier "print", [Call (Identifier "factorial", [Number 5])])))
+  ]), Call (Identifier "print", Call (Identifier "factorial", Number 5))))
 
 let () = test "Items" @@ fun () ->
   items "let x: X = a

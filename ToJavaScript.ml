@@ -50,8 +50,12 @@ module Term = struct
     | V.Infix (left, operator, right) ->
         let operator = Operator.compile operator in
         JS.(Infix (compile left, operator, compile right))
-    | V.Call (callee, arguments) ->
+    | V.Call (callee, V.Tuple arguments) ->
         JS.(Call (compile callee, List.map ~f:compile arguments))
+    | V.Call (callee, argument) ->
+        (* TODO depending on type of argument it should be compiled
+           either as a f(x) or as f.apply(x) *)
+        JS.(Call (compile callee, [compile argument]))
     | _ -> assert false
 end
 

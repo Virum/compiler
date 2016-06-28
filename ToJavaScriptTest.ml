@@ -34,7 +34,11 @@ let () = test "Infix" @@ fun () ->
     => JS.(Infix (a, Operator.Times, b))
 
 let () = test "Call" @@ fun () ->
-  term V.(Call (a, [b; c]))
+  term V.(Call (a, Tuple []))
+    => JS.(Call (a, []));
+  term V.(Call (a, b))
+    => JS.(Call (a, [b]));
+  term V.(Call (a, Tuple [b; c]))
     => JS.(Call (a, [b; c]))
 
 (* ITEM *)
@@ -76,7 +80,7 @@ let () = test "Module" @@ fun () ->
          ]),
        [])))));
   item V.(Module ("foo", [
-    Do (Call (Identifier "factorial", [Number 5]));
+    Do (Call (Identifier "factorial", Number 5));
   ]))
     => JS.(Var ("foo", Prefix (Operator.Prefix.New, (Call (
          Function (Some "foo", [], [
@@ -94,7 +98,7 @@ let () = test "Let" @@ fun () ->
 
 let () = test "Class" @@ fun () ->
   item V.(Class ("Foo", [("a", "T"); ("b", "T")], [
-    Do (Call (a, []));
+    Do (Call (a, Tuple []));
     Let (("b", "T"), None, b);
   ]))
     => JS.(Var ("Foo", Function (Some "Foo", ["a"; "b"], [

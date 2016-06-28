@@ -61,14 +61,20 @@ make_term(__term__):
 | ID { Identifier $1 }
 | STRING { String $1 }
 | NUMBER { Number $1 }
-| parenthesised(term) { $1 }
+| parenthesised_term { $1 }
 | if_else(__term__) { $1 }
 | LET left=pattern EQUAL right=term IN body=__term__
   { LetIn (left, right, body) }
 | left=__term__ operator=infix_operator right=__term__
   { Infix (left, operator, right) }
-| caller=__term__ arguments=parenthesised(comma_separated(term))
-  { Call (caller, arguments) }
+| caller=__term__ argument=parenthesised_term
+  { Call (caller, argument) }
+
+parenthesised_term:
+| LEFT_PAREN RIGHT_PAREN { Tuple [] }
+| LEFT_PAREN head=term COMMA tail=comma_separated(term) RIGHT_PAREN
+  { Tuple (head :: tail) }
+| parenthesised(term) { $1 }
 
 term_no_case:
 | make_term(term_no_case) { $1 }

@@ -49,10 +49,10 @@ let rec infer tenv env = function
       | Error e1 , Error e2  -> Error (e1 @ e2)
       )
 
-  | V.Call (caller, arguments) ->
+  | V.Call (caller, argument) ->
       let caller_t = infer tenv env caller in
       (match caller_t with
-      | Ok Arrow (arguments_t, return_t) -> Ok return_t
+      | Ok Arrow (argument_t, return_t) -> Ok return_t
       | Ok _ -> Error [`Not_a_function]
       | Error e -> Error e)
 

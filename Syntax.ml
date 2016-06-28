@@ -17,12 +17,13 @@ type term =
   | String of string
   | Number of int
   | Boolean of bool
+  | Tuple of term list (* length <> 1 *)
   | CaseFunction of case list
   | Switch of term * case list
   | IfElse of term * term * term
   | LetIn of pattern * term * term
   | Infix of term * operator * term
-  | Call of term * term list
+  | Call of term * term
   [@@deriving sexp]
 
 and case = pattern * term
