@@ -21,7 +21,7 @@
 
 %left PIPE_PIPE
 %left AMPERSAND_AMPERSAND
-%left GREATER_EQUAL LESS_EQUAL GREATER LESS EQUAL_EQUAL BANG_EQUAL
+%left (* GREATER_EQUAL LESS_EQUAL GREATER LESS *) EQUAL_EQUAL BANG_EQUAL
 %left PLUS MINUS
 %left STAR SLASH
 
@@ -100,10 +100,12 @@ case:
 | MINUS               { Minus          }
 | STAR                { Times          }
 | SLASH               { Divide         }
+(*
 | LESS                { Less           }
 | GREATER             { Greater        }
 | LESS_EQUAL          { LessOrEqual    }
 | GREATER_EQUAL       { GreaterOrEqual }
+*)
 | EQUAL_EQUAL         { Equal          }
 | BANG_EQUAL          { NotEqual       }
 | AMPERSAND_AMPERSAND { And            }

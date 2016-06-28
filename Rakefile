@@ -40,7 +40,7 @@ end
 def ocamlbuild targets
   targets = targets.map {|target| target.sub BUILD_DIR_REGEX, ''}.join ' '
   sh %{ocamlbuild -quiet -build-dir #{BUILD_DIR} -I vendor \
-       -cflags '-w @a-39-27-41-44-29-4 -annot -bin-annot' \
+       -cflags '-w @a-39-27-41-44-45-29-4 -annot -bin-annot' \
        -tag 'ppx(./ppx -as-ppx)' \
        -tag thread -use-ocamlfind \
        -use-menhir -menhir 'menhir --explain --strict' \

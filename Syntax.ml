@@ -9,7 +9,6 @@ type pattern = string
 
 type operator =
   | Plus | Minus | Times | Divide | Equal | NotEqual
-  | Less | Greater | LessOrEqual | GreaterOrEqual
   | And | Or
   [@@deriving sexp]
 
@@ -17,6 +16,7 @@ type term =
   | Identifier of string
   | String of string
   | Number of int
+  | Boolean of bool
   | CaseFunction of case list
   | Switch of term * case list
   | IfElse of term * term * term

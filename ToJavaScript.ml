@@ -13,10 +13,6 @@ module Operator = struct
     | V.Divide         -> JS.Operator.Divide
     | V.Equal          -> JS.Operator.Equal
     | V.NotEqual       -> JS.Operator.NotEqual
-    | V.Less           -> JS.Operator.Less
-    | V.Greater        -> JS.Operator.Greater
-    | V.LessOrEqual    -> JS.Operator.LessOrEqual
-    | V.GreaterOrEqual -> JS.Operator.GreaterOrEqual
     | V.And            -> JS.Operator.And
     | V.Or             -> JS.Operator.Or
 

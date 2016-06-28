@@ -11,10 +11,6 @@ module Operator = struct
     | V.Divide         -> Py.Operator.Divide
     | V.Equal          -> Py.Operator.Equal
     | V.NotEqual       -> Py.Operator.NotEqual
-    | V.Less           -> Py.Operator.Less
-    | V.Greater        -> Py.Operator.Greater
-    | V.LessOrEqual    -> Py.Operator.LessOrEqual
-    | V.GreaterOrEqual -> Py.Operator.GreaterOrEqual
     | V.And            -> Py.Operator.And
     | V.Or             -> Py.Operator.Or
 end
