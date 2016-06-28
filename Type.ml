@@ -1,10 +1,22 @@
 module Table = Core_kernel.Std.String.Map
-(* module Result = Core_kernel.Std.Result *)
+module List = Core_kernel.Std.List
 module V = Syntax
+
 
 let or_error error = function
   | None -> Error [error]
   | Some x -> Ok x
+
+
+module Let_syntax = struct
+  let bind = function
+    | Ok ok   -> fun f -> f ok
+    | Error e -> fun _ -> Error e
+
+  let map result f =
+    bind result (fun x -> Ok (f x))
+end
+
 
 type t =
   | Any
@@ -17,7 +29,7 @@ type t =
   | Module of string * (string * t) list
 
 
-let to_signature = function
+let operator_signature = function
 
   | V.Plus | V.Minus | V.Times | V.Divide ->
       Arrow (Tuple [Number; Number], Number)
@@ -29,7 +41,18 @@ let to_signature = function
       Arrow (Tuple [Boolean; Boolean], Boolean)
 
 
-let rec infer tenv env = function
+let rec infer_call tenv env caller_t argument = match caller_t with
+
+  | Arrow (parameter_t, return_t) ->
+      let%bind argument_t = infer tenv env argument in
+        if argument_t = parameter_t
+          then Ok return_t
+          else Error [`Parameter_type_does_not_match_argument]
+
+  | _ ->
+      Error [`Not_a_function]
+
+and infer tenv env = function
 
   | V.Number _ ->
       Ok Number
@@ -40,21 +63,21 @@ let rec infer tenv env = function
   | V.Identifier id ->
       Table.find env id |> or_error (`Unbound_identifier id)
 
-  | V.Infix (left, _, right) ->
-      (match infer tenv env left, infer tenv env right with
-      | Ok Number, Ok Number -> Ok Number
-      | Ok _     , Ok _      -> Error [`Infix_operand_type_error]
-      | Error e  , Ok _
-      | Ok _     , Error e   -> Error e
-      | Error e1 , Error e2  -> Error (e1 @ e2)
-      )
+  | V.Tuple items ->
+      let oks, errors = List.partition_map items ~f:(fun term ->
+        match infer tenv env term with
+        | Ok ok -> `Fst ok
+        | Error e -> `Snd e) in
+      let errors = List.concat errors in
+      if errors <> [] then Error errors else Ok (Tuple oks)
+
+  | V.Infix (left, operator, right) ->
+      let caller_t = operator_signature operator in
+      infer_call tenv env caller_t (V.Tuple [left; right])
 
   | V.Call (caller, argument) ->
-      let caller_t = infer tenv env caller in
-      (match caller_t with
-      | Ok Arrow (argument_t, return_t) -> Ok return_t
-      | Ok _ -> Error [`Not_a_function]
-      | Error e -> Error e)
+      let%bind caller_t = infer tenv env caller in
+      infer_call tenv env caller_t argument
 
   | _ -> assert false
 

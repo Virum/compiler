@@ -26,13 +26,25 @@ let () = test "Identifier" @@ fun () ->
     => Error [`Unbound_identifier "x"]
 
 
+let () = test "Tuple" @@ fun () ->
+
+  infer [] [] V.(Tuple [])
+    => Ok (Tuple []);
+
+  infer [] [] V.(Tuple [Number 1; String "s"])
+    => Ok (Tuple [Number; String]);
+
+  infer [] [] V.(Tuple [Number 1; Identifier "i"; Identifier "j"])
+    => Error [`Unbound_identifier "i"; `Unbound_identifier "j"]
+
+
 let () = test "Infix" @@ fun () ->
 
   infer [] [] V.(Infix (Number 1, Plus, Number 2))
     => Ok Number;
 
   infer [] [] V.(Infix (Number 1, Plus, String "s"))
-    => Error [`Infix_operand_type_error];
+    => Error [`Parameter_type_does_not_match_argument];
 
   infer [] [] V.(Infix (Identifier "x", Plus, Number 2))
     => Error [`Unbound_identifier "x"];
@@ -41,7 +53,7 @@ let () = test "Infix" @@ fun () ->
     => Error [`Unbound_identifier "x"; `Unbound_identifier "y"]
 
 
-let () = test "Call()" @@ fun () ->
+let () = test "Call" @@ fun () ->
 
   infer [] ["f", Arrow (Tuple [], Tuple [])]
       V.(Call (Identifier "f", Tuple []))
@@ -53,4 +65,8 @@ let () = test "Call()" @@ fun () ->
 
   infer [] ["f", Number]
       V.(Call (Identifier "f", Tuple []))
-    => Error [`Not_a_function]
+    => Error [`Not_a_function];
+
+  infer [] ["f", Arrow (Number, Tuple [])]
+      V.(Call (Identifier "f", Tuple []))
+    => Error [`Parameter_type_does_not_match_argument]

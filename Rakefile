@@ -9,7 +9,7 @@ task :ppx => "#{BUILD_DIR}/ppx"
 
 file "#{BUILD_DIR}/ppx" => BUILD_DIR do
   sh %{ocamlfind ocamlopt -predicates ppx_driver -o #{BUILD_DIR}/ppx -linkpkg \
-       -package ppx_sexp_conv ppx_driver_runner.cmxa}
+       -package ppx_sexp_conv -package ppx_let ppx_driver_runner.cmxa}
 end
 
 task :test => :ppx do
