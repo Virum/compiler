@@ -4,89 +4,92 @@ open Type
 module V = Syntax
 let env = Table.of_alist
 
-let infer tenv_alist env_alist term =
+let term tenv_alist env_alist term =
+  Term.infer
+    (Table.of_alist_exn tenv_alist) (Table.of_alist_exn env_alist) term
+let item tenv_alist env_alist term =
   infer (Table.of_alist_exn tenv_alist) (Table.of_alist_exn env_alist) term
 
 
 let () = test "Atoms" @@ fun () ->
 
-  infer [] [] V.(Number 42)
+  term [] [] V.(Number 42)
     => Ok Number;
 
-  infer [] [] V.(String "s")
+  term [] [] V.(String "s")
     => Ok String
 
 
 let () = test "Identifier" @@ fun () ->
 
-  infer [] ["x", Number] V.(Identifier "x")
+  term [] ["x", Number] V.(Identifier "x")
     => Ok Number;
 
-  infer [] [] V.(Identifier "x")
+  term [] [] V.(Identifier "x")
     => Error [`Unbound_identifier "x"]
 
 
 let () = test "Tuple" @@ fun () ->
 
-  infer [] [] V.(Tuple [])
+  term [] [] V.(Tuple [])
     => Ok (Tuple []);
 
-  infer [] [] V.(Tuple [Number 1; String "s"])
+  term [] [] V.(Tuple [Number 1; String "s"])
     => Ok (Tuple [Number; String]);
 
-  infer [] [] V.(Tuple [Number 1; Identifier "i"; Identifier "j"])
+  term [] [] V.(Tuple [Number 1; Identifier "i"; Identifier "j"])
     => Error [`Unbound_identifier "i"; `Unbound_identifier "j"]
 
 
 let () = test "Infix" @@ fun () ->
 
-  infer [] [] V.(Infix (Number 1, Plus, Number 2))
+  term [] [] V.(Infix (Number 1, Plus, Number 2))
     => Ok Number;
 
-  infer [] [] V.(Infix (Number 1, Plus, String "s"))
+  term [] [] V.(Infix (Number 1, Plus, String "s"))
     => Error [`Parameter_type_does_not_match_argument];
 
-  infer [] [] V.(Infix (Identifier "x", Plus, Number 2))
+  term [] [] V.(Infix (Identifier "x", Plus, Number 2))
     => Error [`Unbound_identifier "x"];
 
-  infer [] [] V.(Infix (Identifier "x", Plus, Identifier "y"))
+  term [] [] V.(Infix (Identifier "x", Plus, Identifier "y"))
     => Error [`Unbound_identifier "x"; `Unbound_identifier "y"]
 
 
 let () = test "Call" @@ fun () ->
 
-  infer [] ["f", Arrow (Tuple [], Tuple [])]
+  term [] ["f", Arrow (Tuple [], Tuple [])]
       V.(Call (Identifier "f", Tuple []))
     => Ok (Tuple []);
 
-  infer [] []
+  term [] []
       V.(Call (Identifier "f", Tuple []))
     => Error [`Unbound_identifier "f"];
 
-  infer [] ["f", Number]
+  term [] ["f", Number]
       V.(Call (Identifier "f", Tuple []))
     => Error [`Not_a_function];
 
-  infer [] ["f", Arrow (Number, Tuple [])]
+  term [] ["f", Arrow (Number, Tuple [])]
       V.(Call (Identifier "f", Tuple []))
     => Error [`Parameter_type_does_not_match_argument]
 
 
 let () = test "If-else" @@ fun () ->
 
-  infer [] ["a", Boolean; "b", String; "c", String]
+  term [] ["a", Boolean; "b", String; "c", String]
       V.(IfElse (a, b, c))
     => Ok String;
 
-  infer [] ["a", String; "b", String; "c", String]
+  term [] ["a", String; "b", String; "c", String]
       V.(IfElse (a, b, c))
     => Error [`If_condition_not_boolean];
 
-  infer [] ["a", Boolean; "b", Number; "c", String]
+  term [] ["a", Boolean; "b", Number; "c", String]
       V.(IfElse (a, b, c))
     => Error [`If_consequence_and_alternative_types_do_not_match];
 
-  infer [] []
+  term [] []
       V.(IfElse (a, b, c))
     => Error [
          `Unbound_identifier "a";
@@ -94,7 +97,7 @@ let () = test "If-else" @@ fun () ->
          `Unbound_identifier "c";
        ];
 
-  infer [] ["a", String]
+  term [] ["a", String]
       V.(IfElse (a, b, c))
     => Error [
          `If_condition_not_boolean;
@@ -102,7 +105,7 @@ let () = test "If-else" @@ fun () ->
          `Unbound_identifier "c";
        ];
 
-  infer [] ["b", Number; "c", String]
+  term [] ["b", Number; "c", String]
       V.(IfElse (a, b, c))
     => Error [
          `Unbound_identifier "a";
@@ -112,14 +115,97 @@ let () = test "If-else" @@ fun () ->
 
 let () = test "Let-in" @@ fun () ->
 
-  infer [] ["a", Boolean; "b", String]
+  term [] ["a", Boolean; "b", String]
       V.(LetIn ("x", a, b))
     => Ok String;
 
-  infer [] ["b", Boolean]
+  term [] ["b", Boolean]
       V.(LetIn ("a", b, a))
     => Ok Boolean;
 
-  infer [] ["b", Boolean]
+  term [] ["b", Boolean]
       V.(LetIn ("a", b, Tuple [Number 1; a]))
     => Ok (Tuple [Number; Boolean])
+
+
+(* Items *)
+
+let () = test "Do" @@ fun () ->
+
+  item [] []
+      V.(Do (Tuple []))
+    => Ok (Tuple []);
+
+  item [] ["a", Arrow (Number, Tuple [])]
+      V.(Do (Call (a, Number 1)))
+    => Ok (Tuple []);
+
+  item [] ["a", Arrow (Number, Number)]
+      V.(Do (Call (a, Number 1)))
+    => Error [`Do_should_evaluate_to_unit]
+
+
+let () = test "Let without parameters" @@ fun () ->
+
+  item ["Number", Number] []
+      V.(Let (("a", "Number"), None, Number 1))
+    => Ok Number;
+
+  item ["Number", Number] []
+      V.(Let (("a", "Number"), None, a))
+    => Error [`Unbound_identifier "a"];
+
+  item [] []
+      V.(Let (("a", "Bogus"), None, Number 1))
+    => Error [`Cannot_find_type "Bogus"];
+
+  item ["Number", Number] []
+      V.(Let (("a", "Number"), None, String "s"))
+    => Error [`Declared_type_does_not_match_real_one "Number"]
+
+
+let () = test "Let with parameters" @@ fun () ->
+
+  item ["Number", Number] []
+      V.(Let (("a", "Number"), Some [], Number 1))
+    => Ok (Arrow (Tuple [], Number));
+
+  item ["Number", Number] []
+      V.(Let (("a", "Number"), Some ["b", "Number"], Number 1))
+    => Ok (Arrow (Number, Number));
+
+  item ["Number", Number] []
+     V.(Let (("a", "Number"), Some ["b", "Bogus"], Number 1))
+    => Error [`Cannot_find_type "Bogus"];
+
+  item ["Number", Number] []
+      V.(Let (("a", "Number"),
+              Some ["b", "Number"; "c", "Number"],
+              Number 1))
+    => Ok (Arrow (Tuple [Number; Number], Number));
+
+  item ["Number", Number] []
+      V.(Let (("a", "Number"),
+              Some ["b", "Bogus"; "c", "Phony"; "d", "Number"],
+              Number 1))
+    => Error [
+         `Cannot_find_type "Bogus";
+         `Cannot_find_type "Phony";
+       ];
+
+  item ["Number", Number] []
+      V.(Let (("a", "Dummy"),
+              Some ["b", "Bogus"; "c", "Phony"; "d", "Number"],
+              Number 1))
+    => Error [
+         `Cannot_find_type "Dummy";
+         `Cannot_find_type "Bogus";
+         `Cannot_find_type "Phony";
+       ]
+
+(* TODO
+   * Constructing new environment for Let body
+   * Factor out that List.partition_map pattern
+   * Maybe split Let into Let and LetFunction?
+   * Maybe change Syntax.Let's parameter into something more tuple-like?
+*)

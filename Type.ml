@@ -16,10 +16,10 @@ module Let_syntax = struct
   let map result f =
     bind result (fun x -> Ok (f x))
 
-  let both r1 r2 = match r1, r2 with
-    | Ok ok1, Ok ok2 -> Ok (ok1, ok2)
-    | Error e1, Error e2 -> Error (e1 @ e2)
-    | Error e, _ | _, Error e -> Error e
+  let both left right = match left, right with
+    | Ok left, Ok right -> Ok (left, right)
+    | Error left, Error right -> Error (left @ right)
+    | Error error, _ | _, Error error -> Error error
 end
 
 
@@ -46,70 +46,124 @@ let operator_signature = function
       Arrow (Tuple [Boolean; Boolean], Boolean)
 
 
-let rec infer_call tenv env caller_t argument = match caller_t with
+module Term = struct
 
-  | Arrow (parameter_t, return_t) ->
-      let%bind argument_t = infer tenv env argument in
-        if argument_t = parameter_t
-          then Ok return_t
-          else Error [`Parameter_type_does_not_match_argument]
+  let rec infer_call tenv env caller_t argument = match caller_t with
 
-  | _ ->
-      Error [`Not_a_function]
+    | Arrow (parameter_t, return_t) ->
+        let%bind argument_t = infer tenv env argument in
+          if argument_t = parameter_t
+            then Ok return_t
+            else Error [`Parameter_type_does_not_match_argument]
 
-and infer tenv env = function
+    | _ ->
+        Error [`Not_a_function]
 
-  | V.Boolean _ ->
-      Ok Boolean
+  and infer tenv env = function
 
-  | V.Number _ ->
-      Ok Number
+    | V.Boolean _ ->
+        Ok Boolean
 
-  | V.String _ ->
-      Ok String
+    | V.Number _ ->
+        Ok Number
 
-  | V.Identifier id ->
-      Table.find env id |> or_error (`Unbound_identifier id)
+    | V.String _ ->
+        Ok String
 
-  | V.Tuple items ->
-      let oks, errors = List.partition_map items ~f:(fun term ->
-        match infer tenv env term with
-        | Ok ok -> `Fst ok
-        | Error e -> `Snd e) in
+    | V.Identifier id ->
+        Table.find env id |> or_error (`Unbound_identifier id)
+
+    | V.Tuple items ->
+        (* TODO use Core_kernel.Core_result.ok_fst *)
+        let oks, errors = List.partition_map items ~f:(fun term ->
+          match infer tenv env term with
+          | Ok ok -> `Fst ok
+          | Error e -> `Snd e) in
+        let errors = List.concat errors in
+        if errors <> [] then Error errors else Ok (Tuple oks)
+
+    | V.Infix (left, operator, right) ->
+        let caller_t = operator_signature operator in
+        infer_call tenv env caller_t (V.Tuple [left; right])
+
+    | V.Call (caller, argument) ->
+        let%bind caller_t = infer tenv env caller in
+        infer_call tenv env caller_t argument
+
+    | V.IfElse (condition, consequence, alternative) ->
+        let%bind condition_t =
+          let%bind condition_t = infer tenv env condition in
+          if condition_t <> Boolean
+            then Error [`If_condition_not_boolean]
+            else Ok condition_t
+        and return_t =
+          let%bind consequence_t = infer tenv env consequence
+          and alternative_t = infer tenv env alternative in
+          if consequence_t <> alternative_t
+            then Error [`If_consequence_and_alternative_types_do_not_match]
+            else Ok consequence_t
+        in Ok return_t
+
+    | V.LetIn (name, value, body) ->
+        let%bind value_t = infer tenv env value in
+        let body_env = Table.add env ~key:name ~data:value_t in
+        let%bind body_t = infer tenv body_env body in
+        Ok body_t
+
+    | V.CaseFunction _
+    | V.Switch _ -> assert false
+end
+
+
+let find_type tenv type_id =
+  Table.find tenv type_id |> or_error (`Cannot_find_type type_id)
+
+
+let infer_parameter tenv = function
+
+  | [] ->
+      Ok (Tuple [])
+
+  | [parameter, type_id] ->
+      Table.find tenv type_id |> or_error (`Cannot_find_type type_id)
+
+  | parameters ->
+      let oks, errors =
+        List.partition_map parameters ~f:(fun (parameter, type_id) ->
+          let result = find_type tenv type_id in
+          match result with
+          | Ok ok -> `Fst ok
+          | Error e -> `Snd e) in
       let errors = List.concat errors in
       if errors <> [] then Error errors else Ok (Tuple oks)
 
-  | V.Infix (left, operator, right) ->
-      let caller_t = operator_signature operator in
-      infer_call tenv env caller_t (V.Tuple [left; right])
 
-  | V.Call (caller, argument) ->
-      let%bind caller_t = infer tenv env caller in
-      infer_call tenv env caller_t argument
+let infer_signature tenv return_type_id = function
 
-  | V.IfElse (condition, consequence, alternative) ->
-      let%bind condition_t =
-        let%bind condition_t = infer tenv env condition in
-        if condition_t <> Boolean
-          then Error [`If_condition_not_boolean]
-          else Ok condition_t
-      and return_t =
-        let%bind consequence_t = infer tenv env consequence
-        and alternative_t = infer tenv env alternative in
-        if consequence_t <> alternative_t
-          then Error [`If_consequence_and_alternative_types_do_not_match]
-          else Ok consequence_t
-      in Ok return_t
+  | None ->
+      let%bind return_t = find_type tenv return_type_id in
+      Ok (return_t, return_t)
 
-  | V.LetIn (name, value, body) ->
-      let%bind value_t = infer tenv env value in
-      let body_env = Table.add env ~key:name ~data:value_t in
-      let%bind body_t = infer tenv body_env body in
-      Ok body_t
-
-  | V.CaseFunction _
-  | V.Switch _ -> assert false
+  | Some parameter ->
+      let%bind return_t = find_type tenv return_type_id
+      and parameter_t = infer_parameter tenv parameter in
+      Ok (Arrow (parameter_t, return_t), return_t)
 
 
-  (* Syntax.term -> (unit, poly) Result.t *)
-(* let check = *)
+let rec infer tenv env = function
+
+  | V.Do term ->
+      let%bind term_t = Term.infer tenv env term in
+      if term_t <> Tuple []
+        then Error [`Do_should_evaluate_to_unit]
+        else Ok (Tuple [])
+
+  | V.Let ((name, return_type_id), parameter, body) ->
+      let%bind signature_t, return_t =
+        infer_signature tenv return_type_id parameter in
+      let%bind body_t = Term.infer tenv env body in
+      if body_t <> return_t
+        then Error [`Declared_type_does_not_match_real_one return_type_id]
+        else Ok signature_t
+
+  | _ -> assert false
