@@ -1,4 +1,4 @@
-let (test), (=>) = Test.(test, (=>))
+let test, (=>) = Test.(test, (=>))
 open JavaScript
 module Op = JavaScript.Operator
 

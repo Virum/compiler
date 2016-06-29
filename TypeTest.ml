@@ -70,3 +70,56 @@ let () = test "Call" @@ fun () ->
   infer [] ["f", Arrow (Number, Tuple [])]
       V.(Call (Identifier "f", Tuple []))
     => Error [`Parameter_type_does_not_match_argument]
+
+
+let () = test "If-else" @@ fun () ->
+
+  infer [] ["a", Boolean; "b", String; "c", String]
+      V.(IfElse (a, b, c))
+    => Ok String;
+
+  infer [] ["a", String; "b", String; "c", String]
+      V.(IfElse (a, b, c))
+    => Error [`If_condition_not_boolean];
+
+  infer [] ["a", Boolean; "b", Number; "c", String]
+      V.(IfElse (a, b, c))
+    => Error [`If_consequence_and_alternative_types_do_not_match];
+
+  infer [] []
+      V.(IfElse (a, b, c))
+    => Error [
+         `Unbound_identifier "a";
+         `Unbound_identifier "b";
+         `Unbound_identifier "c";
+       ];
+
+  infer [] ["a", String]
+      V.(IfElse (a, b, c))
+    => Error [
+         `If_condition_not_boolean;
+         `Unbound_identifier "b";
+         `Unbound_identifier "c";
+       ];
+
+  infer [] ["b", Number; "c", String]
+      V.(IfElse (a, b, c))
+    => Error [
+         `Unbound_identifier "a";
+         `If_consequence_and_alternative_types_do_not_match;
+       ]
+
+
+let () = test "Let-in" @@ fun () ->
+
+  infer [] ["a", Boolean; "b", String]
+      V.(LetIn ("x", a, b))
+    => Ok String;
+
+  infer [] ["b", Boolean]
+      V.(LetIn ("a", b, a))
+    => Ok Boolean;
+
+  infer [] ["b", Boolean]
+      V.(LetIn ("a", b, Tuple [Number 1; a]))
+    => Ok (Tuple [Number; Boolean])
