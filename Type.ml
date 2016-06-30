@@ -1,3 +1,5 @@
+open Sexplib.Std
+module Sexp = Sexplib.Sexp
 module List = Core_kernel.Std.List
 module String = Core_kernel.Std.String
 module V = Syntax
@@ -38,8 +40,13 @@ type t =
   | String
   | Tuple of t list (* length <> 1 *)
   | Arrow of t * t
-  | Class of string * (string * t) list
-  | Module of string * (string * t) list
+  | Class of string * environment * environment
+  | Module of string * environment * environment
+  [@@deriving sexp]
+
+
+and environment = t Core_kernel.Std.String.Map.t
+  [@@deriving sexp]
 
 let rec to_string = function
   | Any     -> "Any"
@@ -59,9 +66,11 @@ let print t =
 
 module Environment = struct
   module Map = Core_kernel.Std.String.Map
-  module Sexp = Core_kernel.Std.Sexp
+
+  type t = environment
 
   let find = Map.find
+  let empty = Map.empty
   let add = Map.add
   let of_alist = Map.of_alist
   let of_alist_exn = Map.of_alist_exn
@@ -158,6 +167,16 @@ end
 let find_type tenv type_id =
   Env.find tenv type_id |> Result.of_option ~error:(`Cannot_find_type type_id)
 
+(*
+let is_subtype left right = match right with
+  | Any -> true
+  | Boolean | Number | String -> left = right
+  | Tuple types ->
+  | Arrow of t * t
+  | Class of string * environment * environment
+  | Module of string * environment * environment
+  |
+*)
 
 let infer_parameter tenv env = function
 
@@ -204,5 +223,27 @@ let rec infer tenv env = function
       if body_t <> return_t
         then Error [`Declared_type_does_not_match_real_one return_type_id]
         else Ok signature_t
+
+  | V.Module (name, body) ->
+      let%bind tenv, env, tenv', env' =
+        List.fold body ~init:(Ok Env.(tenv, env, empty, empty))
+        ~f:begin fun result item ->
+          let%bind tenv, env, tenv', env' = result in
+          let%bind item_t = infer tenv env item in
+          match V.binding item with
+          | Some name ->
+              let tenv, tenv' = match item_t with
+                | Module _ ->
+                  let tenv = Env.add tenv ~key:name ~data:item_t in
+                  let tenv' = Env.add tenv' ~key:name ~data:item_t in
+                  tenv, tenv'
+                | _ -> tenv, tenv'
+              in
+              let env = Env.add env ~key:name ~data:item_t in
+              let env' = Env.add env' ~key:name ~data:item_t in
+              Ok (tenv, env, tenv', env')
+          | None -> Ok (tenv, env, tenv', env')
+      end in
+      Ok (Module (name, tenv', env'))
 
   | _ -> assert false

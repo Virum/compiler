@@ -46,8 +46,10 @@ let dump t = print_string (Sexplib.Sexp.to_string_hum (sexp_of_term t))
 let dump_item t = print_string (Sexplib.Sexp.to_string_hum (sexp_of_item t))
 
 
-let bindings = List.filter_map ~f:(function
+let binding = function
   | Let ((name, _), _, _) | Module (name, _) | Class (name, _, _) -> Some name
-  | Do _ -> None)
+  | Do _ -> None
+
+let bindings = List.filter_map ~f:binding
 
 let parameter_names = List.map ~f:fst

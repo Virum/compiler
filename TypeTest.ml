@@ -1,10 +1,11 @@
 let test, (=>) = Test.(test, (=>))
 
+module Sexp = Sexplib.Sexp
 open Type
 module Env = Type.Environment
 module V = Syntax
-let env = Env.of_alist
 
+let env = Env.of_alist_exn
 let term tenv_alist env_alist term =
   Term.infer
     (Env.of_alist_exn tenv_alist) (Env.of_alist_exn env_alist) term
@@ -236,3 +237,100 @@ let () = test "Let with parameters, test inner bindings" @@ fun () ->
               Some ["b", "Number"; "b", "Number"],
               b))
     => Error [`Duplicate_parameter_name "b"]
+
+
+let (=>) left right =
+  match left with
+  | Ok type_ -> Test.Assertion.create Type.sexp_of_t type_ right
+  | Error _ -> failwith "Left hand side of assertion is an Error"
+
+
+let (=>!) left right =
+  match left with
+  | Ok type_ ->
+      Printf.printf "\nExpected error, bug got Ok: %s"
+        (Sexp.to_string_hum (Type.sexp_of_t type_));
+      assert false
+  | Error error -> Test.(=>) error right
+
+
+let () = test "Module" @@ fun () ->
+
+  item ["Number", Number] []
+      V.(Module ("Foo", []))
+    => Module ("Foo", env [], env []);
+
+  item ["Number", Number] []
+      V.(Module ("Foo", [
+        Do (Tuple []);
+      ]))
+    => Module ("Foo", env [], env []);
+
+  item ["Number", Number] []
+      V.(Module ("Foo", [
+        Let (("a", "Number"), None, Number 1);
+      ]))
+    => Module ("Foo", env [], env [
+         "a", Number;
+       ])
+
+
+let () = test "Module: first binding is available inside second" @@ fun () ->
+
+  item ["Number", Number] []
+      V.(Module ("Foo", [
+        Let (("a", "Number"), None, Number 1);
+        Let (("b", "Number"), None, a);
+      ]))
+    => Module ("Foo", env [], env [
+         "a", Number;
+         "b", Number;
+       ])
+
+
+let () = test "Module: error (currently) short-cirquits" @@ fun () ->
+
+  item ["Number", Number] []
+      V.(Module ("Foo", [
+        Let (("a", "Number"), None, Identifier "bogus");
+        Let (("b", "Number"), None, Identifier "phony");
+      ]))
+    =>! [`Unbound_identifier "bogus"]
+
+
+let () = test "Module: defines a new module type" @@ fun () ->
+
+  item ["Number", Number] []
+      V.(Module ("Foo", [
+        Let (("a", "Number"), None, Number 1);
+        Module ("Bar", []);
+      ]))
+    => Module ("Foo", env [
+         "Bar", Module ("Bar", env [], env []);
+       ], env [
+         "a", Number;
+         "Bar", Module ("Bar", env [], env []);
+       ])
+
+(*
+let () =
+
+  item ["Number", Number] []
+      V.(Module ("Foo", [
+        Let (("a", "Number"), None, Number 1);
+        Module ("Bar", []);
+     Let (("b", "Bar"), None, Identifier "Bar");
+      ]))
+    => Module ("Foo", env [
+(*
+         "b", Module ("Bar", env [], env []);
+         "Bar", Module ("Bar", env [], env []);
+*)
+       ], env [
+(*
+         "b", Module ("Bar", env [], env []);
+         "Bar", Module ("Bar", env [], env []);
+         "a", Number;
+*)
+       ])
+*)
