@@ -1,5 +1,4 @@
 module List = Core_kernel.Std.List
-module Sexp = Core_kernel.Std.Sexp
 module String = Core_kernel.Std.String
 module V = Syntax
 
@@ -58,19 +57,26 @@ let print t =
   print_endline (to_string t)
 
 
-module Table = struct
-  include Core_kernel.Std.String.Map
+module Environment = struct
+  module Map = Core_kernel.Std.String.Map
+  module Sexp = Core_kernel.Std.Sexp
 
-  let to_string table =
-    Sexp.to_string_hum (sexp_of_t (fun t -> Sexp.Atom (to_string t)) table)
+  let find = Map.find
+  let add = Map.add
+  let of_alist = Map.of_alist
+  let of_alist_exn = Map.of_alist_exn
 
-  let print table =
-    print_endline (to_string table)
+  let to_string env =
+    Sexp.to_string_hum (Map.sexp_of_t (fun t -> Sexp.Atom (to_string t)) env)
+
+  let print env =
+    print_endline (to_string env)
 
   let merge_right left right =
-    merge left right ~f:(fun ~key -> function
+    Map.merge left right ~f:(fun ~key -> function
       | `Both (_, value) | `Left value | `Right value -> Some value)
 end
+module Env = Environment
 
 
 let operator_signature = function
@@ -110,7 +116,7 @@ module Term = struct
         Ok String
 
     | V.Identifier id ->
-        Table.find env id |> Result.of_option ~error:(`Unbound_identifier id)
+        Env.find env id |> Result.of_option ~error:(`Unbound_identifier id)
 
     | V.Tuple items ->
         let%bind types = items |> List.map ~f:(infer tenv env) |> Result.all in
@@ -140,7 +146,7 @@ module Term = struct
 
     | V.LetIn (name, value, body) ->
         let%bind value_t = infer tenv env value in
-        let body_env = Table.add env ~key:name ~data:value_t in
+        let body_env = Env.add env ~key:name ~data:value_t in
         let%bind body_t = infer tenv body_env body in
         Ok body_t
 
@@ -150,14 +156,14 @@ end
 
 
 let find_type tenv type_id =
-  Table.find tenv type_id |> Result.of_option ~error:(`Cannot_find_type type_id)
+  Env.find tenv type_id |> Result.of_option ~error:(`Cannot_find_type type_id)
 
 
 let infer_parameter tenv env = function
 
   | [parameter, type_id] ->
       let%bind parameter_t = find_type tenv type_id in
-      let env' = Table.add env ~key:parameter ~data:parameter_t in
+      let env' = Env.add env ~key:parameter ~data:parameter_t in
       Ok (env', parameter_t)
 
   | parameters ->
@@ -167,11 +173,11 @@ let infer_parameter tenv env = function
       in
       let%bind pairs = parameters |> List.map ~f:pair_to_type |> Result.all in
       let types = List.map ~f:snd pairs in
-      let%bind parameters_env = Table.of_alist pairs |> (function
+      let%bind parameters_env = Env.of_alist pairs |> (function
         | `Duplicate_key key -> Error [`Duplicate_parameter_name key]
         | `Ok env -> Ok env)
       in
-      let new_env = Table.merge_right env parameters_env in
+      let new_env = Env.merge_right env parameters_env in
       Ok (new_env, Tuple types)
 
 

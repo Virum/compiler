@@ -1,14 +1,15 @@
 let test, (=>) = Test.(test, (=>))
 
 open Type
+module Env = Type.Environment
 module V = Syntax
-let env = Table.of_alist
+let env = Env.of_alist
 
 let term tenv_alist env_alist term =
   Term.infer
-    (Table.of_alist_exn tenv_alist) (Table.of_alist_exn env_alist) term
+    (Env.of_alist_exn tenv_alist) (Env.of_alist_exn env_alist) term
 let item tenv_alist env_alist term =
-  infer (Table.of_alist_exn tenv_alist) (Table.of_alist_exn env_alist) term
+  infer (Env.of_alist_exn tenv_alist) (Env.of_alist_exn env_alist) term
 
 
 let () = test "Atoms" @@ fun () ->
@@ -235,7 +236,3 @@ let () = test "Let with parameters, test inner bindings" @@ fun () ->
               Some ["b", "Number"; "b", "Number"],
               b))
     => Error [`Duplicate_parameter_name "b"]
-
-
-
-
