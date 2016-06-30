@@ -1,7 +1,7 @@
-module Table = Core_kernel.Std.String.Map
 module List = Core_kernel.Std.List
+module Sexp = Core_kernel.Std.Sexp
+module String = Core_kernel.Std.String
 module V = Syntax
-
 
 module Result = struct
   let to_either = function
@@ -41,6 +41,36 @@ type t =
   | Arrow of t * t
   | Class of string * (string * t) list
   | Module of string * (string * t) list
+
+let rec to_string = function
+  | Any     -> "Any"
+  | Boolean -> "Boolean"
+  | Number  -> "Number"
+  | String  -> "String"
+  | Tuple items ->
+      "(" ^ String.concat ~sep:", " (List.map items ~f:to_string) ^ ")"
+  | Arrow (left, right) ->
+      "(" ^ to_string left ^ " -> " ^ to_string right ^ ")"
+  | Class _ -> "Class"
+  | Module _ -> "Module"
+
+let print t =
+  print_endline (to_string t)
+
+
+module Table = struct
+  include Core_kernel.Std.String.Map
+
+  let to_string table =
+    Sexp.to_string_hum (sexp_of_t (fun t -> Sexp.Atom (to_string t)) table)
+
+  let print table =
+    print_endline (to_string table)
+
+  let merge_right left right =
+    merge left right ~f:(fun ~key -> function
+      | `Both (_, value) | `Left value | `Right value -> Some value)
+end
 
 
 let operator_signature = function
@@ -123,15 +153,26 @@ let find_type tenv type_id =
   Table.find tenv type_id |> Result.of_option ~error:(`Cannot_find_type type_id)
 
 
-let infer_parameter tenv = function
+let infer_parameter tenv env = function
 
   | [parameter, type_id] ->
-      find_type tenv type_id
+      let%bind parameter_t = find_type tenv type_id in
+      let env' = Table.add env ~key:parameter ~data:parameter_t in
+      Ok (env', parameter_t)
 
   | parameters ->
-      let pair_to_type (parameter, type_id) = find_type tenv type_id in
-      let%bind types = parameters |> List.map ~f:pair_to_type |> Result.all in
-      Ok (Tuple types)
+      let pair_to_type (parameter, type_id) =
+        let%bind parameter_t = find_type tenv type_id in
+        Ok (parameter, parameter_t)
+      in
+      let%bind pairs = parameters |> List.map ~f:pair_to_type |> Result.all in
+      let types = List.map ~f:snd pairs in
+      let%bind parameters_env = Table.of_alist pairs |> (function
+        | `Duplicate_key key -> Error [`Duplicate_parameter_name key]
+        | `Ok env -> Ok env)
+      in
+      let new_env = Table.merge_right env parameters_env in
+      Ok (new_env, Tuple types)
 
 
 let rec infer tenv env = function
@@ -151,10 +192,9 @@ let rec infer tenv env = function
 
   | V.Let ((name, return_type_id), Some parameter, body) ->
       let%bind return_t = find_type tenv return_type_id
-      and parameter_t = infer_parameter tenv parameter in
+      and body_env, parameter_t = infer_parameter tenv env parameter in
       let signature_t = Arrow (parameter_t, return_t) in
-
-      let%bind body_t = Term.infer tenv env body in
+      let%bind body_t = Term.infer tenv body_env body in
       if body_t <> return_t
         then Error [`Declared_type_does_not_match_real_one return_type_id]
         else Ok signature_t

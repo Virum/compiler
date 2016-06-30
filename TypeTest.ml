@@ -211,21 +211,31 @@ let () = test "Let with parameters" @@ fun () ->
        ]
 
 
-(*
 let () = test "Let with parameters, test inner bindings" @@ fun () ->
 
   item ["Number", Number] []
       V.(Let (("a", "Number"), Some ["b", "Number"], b))
-    => Ok Number
-*)
-(*     => Error [`Unbound_identifier "b"; `Unbound_identifier "c"] *)
+    => Ok (Arrow (Number, Number));
+
+  item ["Number", Number] []
+      V.(Let (("a", "Number"),
+              Some ["b", "Number"; "c", "Number"],
+              Infix (b, Plus, c)))
+    => Ok (Arrow (Tuple [Number; Number], Number));
+
+  item ["Number", Number; "Point", Tuple [Number; Number]] []
+      V.(Let (("a", "Point"),
+              Some ["b", "Number"; "c", "Number"],
+              Tuple [b; c]))
+    => Ok (Arrow (Tuple [Number; Number], Tuple [Number; Number]));
+
+
+  item ["Number", Number; "String", String] []
+      V.(Let (("a", "Number"),
+              Some ["b", "Number"; "b", "Number"],
+              b))
+    => Error [`Duplicate_parameter_name "b"]
 
 
 
 
-(* TODO
-   * Constructing new environment for Let body
-   * Factor out that List.partition_map pattern
-   * Maybe split Let into Let and LetFunction?
-   * Maybe change Syntax.Let's parameter into something more tuple-like?
-*)
