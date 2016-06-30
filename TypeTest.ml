@@ -13,6 +13,54 @@ let item tenv_alist env_alist term =
   infer (Env.of_alist_exn tenv_alist) (Env.of_alist_exn env_alist) term
 
 
+let () = test "Subtyping" @@ fun () ->
+
+  is_subtype Number Number
+    => true;
+
+  is_subtype Number Any
+    => true;
+
+  is_subtype Any Number
+    => false
+
+
+let () = test "Subtyping: Tuples are covariant" @@ fun () ->
+
+  is_subtype (Tuple []) (Tuple [])
+    => true;
+
+  is_subtype (Tuple []) (Tuple [Number; String])
+    => false;
+
+  is_subtype (Tuple [Number; String]) (Tuple [])
+    => false;
+
+  is_subtype (Tuple [Number; String]) (Tuple [Number; String])
+    => true;
+
+  is_subtype (Tuple [Number; String]) (Tuple [Any; Any])
+    => true
+
+
+let () = test "Subtyping: Functions: variance" @@ fun () ->
+
+  is_subtype (Arrow (Number, Number)) (Arrow (Number, Number))
+    => true;
+
+  is_subtype (Arrow (Any, Number)) (Arrow (Number, Number))
+    => true;
+
+  is_subtype (Arrow (Number, Number)) (Arrow (Any, Number))
+    => false;
+
+  is_subtype (Arrow (Number, Any)) (Arrow (Number, Number))
+    => false;
+
+  is_subtype (Arrow (Number, Number)) (Arrow (Number, Any))
+    => true
+
+
 let () = test "Atoms" @@ fun () ->
 
   term [] [] V.(Number 42)
@@ -312,25 +360,19 @@ let () = test "Module: defines a new module type" @@ fun () ->
          "Bar", Module ("Bar", env [], env []);
        ])
 
-(*
-let () =
+let () = test "Module: creating alias" @@ fun () ->
 
   item ["Number", Number] []
       V.(Module ("Foo", [
         Let (("a", "Number"), None, Number 1);
         Module ("Bar", []);
-     Let (("b", "Bar"), None, Identifier "Bar");
+        Let (("BarAlias", "Bar"), None, Identifier "Bar");
       ]))
     => Module ("Foo", env [
-(*
-         "b", Module ("Bar", env [], env []);
          "Bar", Module ("Bar", env [], env []);
-*)
+         "BarAlias", Module ("Bar", env [], env []);
        ], env [
-(*
-         "b", Module ("Bar", env [], env []);
-         "Bar", Module ("Bar", env [], env []);
          "a", Number;
-*)
+         "Bar", Module ("Bar", env [], env []);
+         "BarAlias", Module ("Bar", env [], env []);
        ])
-*)

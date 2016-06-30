@@ -167,16 +167,31 @@ end
 let find_type tenv type_id =
   Env.find tenv type_id |> Result.of_option ~error:(`Cannot_find_type type_id)
 
-(*
-let is_subtype left right = match right with
-  | Any -> true
-  | Boolean | Number | String -> left = right
-  | Tuple types ->
-  | Arrow of t * t
-  | Class of string * environment * environment
-  | Module of string * environment * environment
-  |
-*)
+
+let rec is_subtype left right = match left, right with
+
+  | _, Any ->
+      true
+
+  | Any, _ ->
+      false
+
+  | Boolean, Boolean | Number, Number | String, String ->
+      true
+
+  | Tuple left, Tuple right ->
+      if List.length left <> List.length right then false else
+      (* exn: we just checked that length is same *)
+      List.for_all2_exn left right ~f:is_subtype
+
+  | Arrow (left_in, left_out), Arrow (right_in, right_out) ->
+      is_subtype right_in left_in && is_subtype left_out right_out
+
+  | Module _, Module _ ->
+      true (* we'll see *)
+
+  | _ -> false
+
 
 let infer_parameter tenv env = function
 
@@ -211,7 +226,7 @@ let rec infer tenv env = function
   | V.Let ((name, return_type_id), None, body) ->
       let%bind return_t = find_type tenv return_type_id
       and body_t = Term.infer tenv env body in
-      if body_t <> return_t
+      if not (is_subtype body_t return_t)
         then Error [`Declared_type_does_not_match_real_one return_type_id]
         else Ok body_t
 
