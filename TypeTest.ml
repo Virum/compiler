@@ -203,6 +203,19 @@ let () = test "Let with parameters" @@ fun () ->
          `Cannot_find_type "Phony";
        ]
 
+
+(*
+let () = test "Let with parameters, test inner bindings" @@ fun () ->
+
+  item ["Number", Number] []
+      V.(Let (("a", "Number"), Some ["b", "Number"], b))
+    => Ok Number
+*)
+(*     => Error [`Unbound_identifier "b"; `Unbound_identifier "c"] *)
+
+
+
+
 (* TODO
    * Constructing new environment for Let body
    * Factor out that List.partition_map pattern

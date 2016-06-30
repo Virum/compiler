@@ -3,24 +3,33 @@ module List = Core_kernel.Std.List
 module V = Syntax
 
 
-let or_error error = function
-  | None -> Error [error]
-  | Some x -> Ok x
+module Result = struct
+  let to_either = function
+    | Ok ok -> `Fst ok
+    | Error error -> `Snd error
 
+  let all items =
+    let oks, errors = List.partition_map items ~f:to_either in
+    let errors = List.concat errors in
+    if errors <> [] then Error errors else Ok oks
 
-module Let_syntax = struct
   let bind = function
     | Ok ok   -> fun f -> f ok
     | Error e -> fun _ -> Error e
 
-  let map result f =
+  let map ~f result =
     bind result (fun x -> Ok (f x))
 
   let both left right = match left, right with
     | Ok left, Ok right -> Ok (left, right)
     | Error left, Error right -> Error (left @ right)
     | Error error, _ | _, Error error -> Error error
+
+  let of_option ~error = function
+    | None -> Error [error]
+    | Some x -> Ok x
 end
+module Let_syntax = Result
 
 
 type t =
@@ -71,16 +80,11 @@ module Term = struct
         Ok String
 
     | V.Identifier id ->
-        Table.find env id |> or_error (`Unbound_identifier id)
+        Table.find env id |> Result.of_option ~error:(`Unbound_identifier id)
 
     | V.Tuple items ->
-        (* TODO use Core_kernel.Core_result.ok_fst *)
-        let oks, errors = List.partition_map items ~f:(fun term ->
-          match infer tenv env term with
-          | Ok ok -> `Fst ok
-          | Error e -> `Snd e) in
-        let errors = List.concat errors in
-        if errors <> [] then Error errors else Ok (Tuple oks)
+        let%bind types = items |> List.map ~f:(infer tenv env) |> Result.all in
+        Ok (Tuple types)
 
     | V.Infix (left, operator, right) ->
         let caller_t = operator_signature operator in
@@ -116,7 +120,7 @@ end
 
 
 let find_type tenv type_id =
-  Table.find tenv type_id |> or_error (`Cannot_find_type type_id)
+  Table.find tenv type_id |> Result.of_option ~error:(`Cannot_find_type type_id)
 
 
 let infer_parameter tenv = function
@@ -125,17 +129,12 @@ let infer_parameter tenv = function
       Ok (Tuple [])
 
   | [parameter, type_id] ->
-      Table.find tenv type_id |> or_error (`Cannot_find_type type_id)
+      find_type tenv type_id
 
   | parameters ->
-      let oks, errors =
-        List.partition_map parameters ~f:(fun (parameter, type_id) ->
-          let result = find_type tenv type_id in
-          match result with
-          | Ok ok -> `Fst ok
-          | Error e -> `Snd e) in
-      let errors = List.concat errors in
-      if errors <> [] then Error errors else Ok (Tuple oks)
+      let pair_to_type (parameter, type_id) = find_type tenv type_id in
+      let%bind types = parameters |> List.map ~f:pair_to_type |> Result.all in
+      Ok (Tuple types)
 
 
 let infer_signature tenv return_type_id = function
