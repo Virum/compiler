@@ -24,7 +24,7 @@ let _ = "Nested colors" >>> fun _ ->
   Template.(render (red (text " a " ^ (green (text " b ")) ^ (text " c "))))
     => "\027[31m a \027[32m b \027[0m\027[31m c \027[0m"
 
-module TestRestogingContext = struct
+module TestRestoringContext = struct
   let context = [Terminal.Text.(Style.Foreground Color.Red)]
 
   let _ = "Text does not interfere, so no need to restore context" >>> fun _ ->

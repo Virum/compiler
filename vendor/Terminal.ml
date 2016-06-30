@@ -131,7 +131,7 @@ module Template = struct
 
   let var label = Var label
 
-  let rec render ?(vars=fun _ -> assert false) ?(context=[])= function
+  let rec render ?(vars=fun _ -> assert false) ?(context=[]) = function
     | Text source -> source
     | Var label -> vars label
     | Styled (styles, template) ->
@@ -141,7 +141,8 @@ module Template = struct
     | Join (left, right) ->
         render left ~vars ~context ^ render right ~vars ~context
 
-  let print template ~vars = print_string (render template ~vars)
+  let print ?(vars=fun _ -> assert false) template =
+    print_string (render template ~vars)
 
   let compile template = template (* TODO *)
 
