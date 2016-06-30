@@ -161,7 +161,14 @@ let () = test "Let without parameters" @@ fun () ->
 
   item ["Number", Number] []
       V.(Let (("a", "Number"), None, String "s"))
-    => Error [`Declared_type_does_not_match_real_one "Number"]
+    => Error [`Declared_type_does_not_match_real_one "Number"];
+
+  item [] []
+      V.(Let (("a", "Bogus"), None, a))
+    => Error [
+         `Cannot_find_type "Bogus";
+         `Unbound_identifier "a";
+       ]
 
 
 let () = test "Let with parameters" @@ fun () ->

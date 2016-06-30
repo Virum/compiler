@@ -125,9 +125,6 @@ let find_type tenv type_id =
 
 let infer_parameter tenv = function
 
-  | [] ->
-      Ok (Tuple [])
-
   | [parameter, type_id] ->
       find_type tenv type_id
 
@@ -135,18 +132,6 @@ let infer_parameter tenv = function
       let pair_to_type (parameter, type_id) = find_type tenv type_id in
       let%bind types = parameters |> List.map ~f:pair_to_type |> Result.all in
       Ok (Tuple types)
-
-
-let infer_signature tenv return_type_id = function
-
-  | None ->
-      let%bind return_t = find_type tenv return_type_id in
-      Ok (return_t, return_t)
-
-  | Some parameter ->
-      let%bind return_t = find_type tenv return_type_id
-      and parameter_t = infer_parameter tenv parameter in
-      Ok (Arrow (parameter_t, return_t), return_t)
 
 
 let rec infer tenv env = function
@@ -157,9 +142,18 @@ let rec infer tenv env = function
         then Error [`Do_should_evaluate_to_unit]
         else Ok (Tuple [])
 
-  | V.Let ((name, return_type_id), parameter, body) ->
-      let%bind signature_t, return_t =
-        infer_signature tenv return_type_id parameter in
+  | V.Let ((name, return_type_id), None, body) ->
+      let%bind return_t = find_type tenv return_type_id
+      and body_t = Term.infer tenv env body in
+      if body_t <> return_t
+        then Error [`Declared_type_does_not_match_real_one return_type_id]
+        else Ok body_t
+
+  | V.Let ((name, return_type_id), Some parameter, body) ->
+      let%bind return_t = find_type tenv return_type_id
+      and parameter_t = infer_parameter tenv parameter in
+      let signature_t = Arrow (parameter_t, return_t) in
+
       let%bind body_t = Term.infer tenv env body in
       if body_t <> return_t
         then Error [`Declared_type_does_not_match_real_one return_type_id]
