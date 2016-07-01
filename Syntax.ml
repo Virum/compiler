@@ -45,9 +45,9 @@ type item =
 
 let a, b, c, d = Identifier "a", Identifier "b", Identifier "c", Identifier "d"
 
-let dump t = print_string (Sexplib.Sexp.to_string_hum (sexp_of_term t))
+let dump t = print_endline (Sexplib.Sexp.to_string_hum (sexp_of_term t))
 
-let dump_item t = print_string (Sexplib.Sexp.to_string_hum (sexp_of_item t))
+let dump_item t = print_endline (Sexplib.Sexp.to_string_hum (sexp_of_item t))
 
 
 let binding = function
