@@ -85,6 +85,10 @@ let () = test "Call" @@ fun () ->
   term "a(b)(c)"
     => Ok (Call (Call (a, b), c))
 
+let () = test "Call" @@ fun () ->
+  term "a.b"
+    => Ok (Member (a, "b"))
+
 let () = test "Integration: factorial" @@ fun () ->
   term "
     let factorial = case n:

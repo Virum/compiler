@@ -28,8 +28,8 @@
 %left LEFT_PAREN (* call *)
 (*
 %nonassoc __unary_precedence__
-%left DOT
 *)
+%left DOT
 
 %%
 
@@ -69,6 +69,8 @@ make_term(__term__):
   { Infix (left, operator, right) }
 | caller=__term__ argument=parenthesised_term
   { Call (caller, argument) }
+| term=__term__ DOT member=ID
+  { Member (term, member) }
 
 parenthesised_term:
 | LEFT_PAREN RIGHT_PAREN { Tuple [] }

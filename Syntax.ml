@@ -24,6 +24,7 @@ type term =
   | LetIn of pattern * term * term
   | Infix of term * operator * term
   | Call of term * term
+  | Member of term * string
   [@@deriving sexp]
 
 and case = pattern * term

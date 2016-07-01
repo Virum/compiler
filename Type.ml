@@ -159,6 +159,7 @@ module Term = struct
         let%bind body_t = infer tenv body_env body in
         Ok body_t
 
+    | V.Member _
     | V.CaseFunction _
     | V.Switch _ -> assert false
 end
