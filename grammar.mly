@@ -62,6 +62,7 @@ make_term(__term__):
 | STRING { String $1 }
 | NUMBER { Number $1 }
 | parenthesised_term { $1 }
+| braced(term) { $1 }
 | if_else(__term__) { $1 }
 | LET left=pattern EQUAL right=term IN body=__term__
   { LetIn (left, right, body) }
