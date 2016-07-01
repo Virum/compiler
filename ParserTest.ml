@@ -104,6 +104,19 @@ let () = test "Map" @@ fun () ->
     => Ok (Map [a, b; c, d]);
   term "{a: b, c: d,}"
     => Ok (Map [a, b; c, d])
+
+let () = test "Array" @@ fun () ->
+  term "[]"
+    => Ok (Array []);
+  term "[a]"
+    => Ok (Array [a]);
+  term "[a,]"
+    => Ok (Array [a]);
+  term "[a, b]"
+    => Ok (Array [a; b]);
+  term "[a, b,]"
+    => Ok (Array [a; b])
+
 (*
 let () = test "Json" @@ fun () ->
   term "Json.123"

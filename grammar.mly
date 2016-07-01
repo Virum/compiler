@@ -72,6 +72,7 @@ make_term(__term__):
 | NUMBER { Number $1 }
 | parenthesised_term { $1 }
 | braced_term { $1 }
+| bracketed(comma_separated(term)) { Array $1 }
 | if_else(__term__) { $1 }
 | LET left=pattern EQUAL right=term IN body=__term__
   { LetIn (left, right, body) }

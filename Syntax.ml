@@ -26,6 +26,7 @@ type term =
   | Call of term * term
   | Member of term * string
   | Map of (term * term) list
+  | Array of term list
 (*   | Json of json *)
   [@@deriving sexp]
 

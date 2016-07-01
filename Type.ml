@@ -160,6 +160,7 @@ module Term = struct
         Ok body_t
 
     | V.Map _
+    | V.Array _
     | V.Member _
     | V.CaseFunction _
     | V.Switch _ -> assert false
