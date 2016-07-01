@@ -80,8 +80,10 @@ make_term(__term__):
   { Infix (left, operator, right) }
 | caller=__term__ argument=parenthesised_term
   { Call (caller, argument) }
-| term=__term__ DOT member=ID
-  { Member (term, member) }
+| left=__term__ DOT right=__term__
+  { match right with
+    | Identifier member -> Member (left, member)
+    | _ -> Extension (left, right) }
 
 parenthesised_term:
 | LEFT_PAREN RIGHT_PAREN { Tuple [] }

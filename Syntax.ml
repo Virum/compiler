@@ -27,14 +27,8 @@ type term =
   | Member of term * string
   | Map of (term * term) list
   | Array of term list
-(*   | Json of json *)
+  | Extension of term * term
   [@@deriving sexp]
-
-(*
-and json = [
-  `Number of int
-] [@@deriving sexp]
-*)
 
 and case = pattern * term
   [@@deriving sexp]

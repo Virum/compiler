@@ -163,6 +163,7 @@ module Term = struct
     | V.Array _
     | V.Member _
     | V.CaseFunction _
+    | V.Extension _
     | V.Switch _ -> assert false
 end
 

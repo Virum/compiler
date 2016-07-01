@@ -117,11 +117,13 @@ let () = test "Array" @@ fun () ->
   term "[a, b,]"
     => Ok (Array [a; b])
 
-(*
-let () = test "Json" @@ fun () ->
+let () = test "Syntax extension points: Json" @@ fun () ->
   term "Json.123"
-    => Ok (Json (`Number 123))
-*)
+    => Ok (Extension (Identifier "Json", Number 123));
+  term "Json.{key: [a, b, 1, 2]}"
+    => Ok (Extension (Identifier "Json", Map [
+         Identifier "key", Array [a; b; Number 1; Number 2];
+       ]))
 
 let () = test "Integration: factorial" @@ fun () ->
   term "
