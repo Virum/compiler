@@ -56,6 +56,8 @@ module Term = struct
         (* TODO depending on type of argument it should be compiled
            either as a f(x) or as f.apply(x) *)
         JS.(Call (compile callee, [compile argument]))
+    | V.Member (term, member) ->
+        JS.(Member (compile term, String member))
     | _ -> assert false
 end
 

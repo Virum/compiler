@@ -35,6 +35,10 @@ let () = test "Call" @@ fun () ->
   term V.(Call (a, Tuple [b; c]))
     => Py.(Call (a, [b; c]))
 
+let () = test "Member" @@ fun () ->
+  term V.(Member (a, "b"))
+    => Py.(Member (a, "b"))
+
 (* ITEM *)
 
 let () = test "Let" @@ fun () ->

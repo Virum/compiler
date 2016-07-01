@@ -41,6 +41,10 @@ let () = test "Call" @@ fun () ->
   term V.(Call (a, Tuple [b; c]))
     => JS.(Call (a, [b; c]))
 
+let () = test "Member" @@ fun () ->
+  term V.(Member (a, "b"))
+    => JS.(Member (a, String "b"))
+
 (* ITEM *)
 
 let () = test "Module" @@ fun () ->

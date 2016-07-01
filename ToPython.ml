@@ -54,6 +54,9 @@ module Term = struct
            either called as f(x) or apply(f, x) *)
         Py.(Call (compile callee, [compile arguments]))
 
+    | V.Member (term, member) ->
+        Py.(Member (compile term, member))
+
     | _ -> assert false
 end
 
