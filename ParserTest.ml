@@ -93,6 +93,23 @@ let () = test "Block" @@ fun () ->
   term "{ a }"
     => Ok a
 
+let () = test "Map" @@ fun () ->
+  term "{}"
+    => Ok (Map []);
+  term "{a: b}"
+    => Ok (Map [a, b]);
+  term "{a: b,}"
+    => Ok (Map [a, b]);
+  term "{a: b, c: d}"
+    => Ok (Map [a, b; c, d]);
+  term "{a: b, c: d,}"
+    => Ok (Map [a, b; c, d])
+(*
+let () = test "Json" @@ fun () ->
+  term "Json.123"
+    => Ok (Json (`Number 123))
+*)
+
 let () = test "Integration: factorial" @@ fun () ->
   term "
     let factorial = case n:

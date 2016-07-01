@@ -25,7 +25,15 @@ type term =
   | Infix of term * operator * term
   | Call of term * term
   | Member of term * string
+  | Map of (term * term) list
+(*   | Json of json *)
   [@@deriving sexp]
+
+(*
+and json = [
+  `Number of int
+] [@@deriving sexp]
+*)
 
 and case = pattern * term
   [@@deriving sexp]
