@@ -77,6 +77,26 @@ let () = test "Array" @@ fun () ->
   this_term_too_long_to_fit_in_one_line
 ];"
 
+let () = test "Muli-line definition" @@ fun () ->
+  to_string (Var ("x", (Array [
+    Identifier "this_term_too_long_to_fit_in_one_line";
+    Identifier "this_term_too_long_to_fit_in_one_line";
+    Array [
+      Identifier "this_term_too_long_to_fit_in_one_line";
+      Identifier "this_term_too_long_to_fit_in_one_line";
+    ];
+  ])))
+    => "\
+var x = [
+          this_term_too_long_to_fit_in_one_line,
+          this_term_too_long_to_fit_in_one_line,
+          [
+            this_term_too_long_to_fit_in_one_line,
+            this_term_too_long_to_fit_in_one_line
+          ]
+        ];"
+
+
 let () = test "Function" @@ fun () ->
   to_string (Term (Function (None, [], [])))
     => "function () {};";

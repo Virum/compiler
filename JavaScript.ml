@@ -87,7 +87,9 @@ let binding = function
 let box f tail = if tail then text "" f () else text "@[<v 2>" f ()
 
 let rec format_statements f statements =
-  format_list ~start:(text "@,") ~sep:(text "@ ") ~trailer:(text "@;<0 -2>")
+  (* "@<80>%s" forces a line break no matter what box we are in. *)
+  let sep f () = fprintf f "@<80>%s" "" in
+  format_list ~start:(text "@,") ~sep ~trailer:(text "@;<0 -2>")
     (format_statement false) f statements
 
 and format_pair f (name, term) =
@@ -98,7 +100,7 @@ and format_pair f (name, term) =
 
 and format_statement tail f = function
   | Term term -> fprintf f
-     "@[<v 2>%a;@]" format_term term
+     "@[<hv 2>%a;@]" format_term term
   | IfElse (condition, consequence, [IfElse _ as nested_if_else]) -> fprintf f
       "%aif (%a) {%a@]@[<v 2>} else %a"
         box tail
@@ -112,9 +114,9 @@ and format_statement tail f = function
         format_statements consequence
         format_statements alternative
   | Return term -> fprintf f
-      "@[<v 2>return %a;@]" format_term term
+      "@[<hv 2>return %a;@]" format_term term
   | Var (name, term) -> fprintf f
-      "@[<v 2>var %s = %a;@]" name format_term term
+      "@[<hv 2>var %s = %a;@]" name format_term term
 
 and format_term_naive f format_left format_right = function
   | Identifier id -> fprintf f
@@ -144,8 +146,7 @@ and format_term_naive f format_left format_right = function
         (format_comma_separated format_string) parameters
         format_statements body
   | Object pairs -> fprintf f
-      "@[<hv 2>{@,%a@;<0 -2>}@]"
-        (format_comma_separated format_pair) pairs
+      "@[<hv 2>{@,%a@;<0 -2>}@]" (format_comma_separated format_pair) pairs
   | Array items -> fprintf f
       "@[<hv 2>[@,%a@;<0 -2>]@]" (format_comma_separated format_term) items
 
