@@ -91,7 +91,10 @@ let rec format_statements f statements =
     (format_statement false) f statements
 
 and format_pair f (name, term) =
-  fprintf f "%s: %a" name format_term term
+  if Render.is_valid_identifier name then
+    fprintf f "%s: %a" name format_term term
+  else
+    fprintf f "%s: %a" (Render.escape_string name) format_term term
 
 and format_statement tail f = function
   | Term term -> fprintf f

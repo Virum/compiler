@@ -4,14 +4,6 @@ open Syntax
 let compile = Extensions.Json.compile
 
 
-let () = test "Item traversal" @@ fun () ->
-  Extensions.compile (Module ("Foo", [
-    Do (Extension (Identifier "Json", b));
-  ]))
-    => Ok (Module ("Foo", [
-    Do (Identifier "yay");
-  ]))
-
 let () = test "Json" @@ fun () ->
 
   compile (Extension (Identifier "Foo", a))

@@ -150,6 +150,10 @@ let () = test "Object literal" @@ fun () ->
   object_too_long_to_fit_on_one_line: b
 };"
 
+let () = test "Object literal with non-identifier keys" @@ fun () ->
+  to_string (Term (Object [("!@#", a); ("y", b)]))
+    => "{\"!@#\": a, y: b};"
+
 let () = test "Integration" @@ fun () ->
   to_string (Term (
     Call (

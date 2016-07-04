@@ -64,7 +64,11 @@ module Term = struct
         let compile_pair (left, right) = compile left, compile right in
         Py.(Dict (List.map ~f:compile_pair pairs))
 
-    | _ -> assert false
+    | V.Boolean _ -> assert false
+    | V.Tuple _ -> assert false
+    | V.CaseFunction _ -> assert false
+    | V.Switch _ -> assert false
+    | V.Extension _ -> assert false
 end
 
 let rec compile = function

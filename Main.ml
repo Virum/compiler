@@ -31,8 +31,8 @@ let () =
   let result =
     Parser.Items.parse_channel (open_in file_name)
       >>| (fun items -> Syntax.Module (module_name, items))
-      >>| ToPython.compile
-      >>| Python.to_string
+      >>| ToJavaScript.compile
+      >>| JavaScript.to_string
   in
   result
     |> Result.map_error Error.to_string
