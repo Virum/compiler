@@ -39,6 +39,16 @@ let () = test "Member" @@ fun () ->
   term V.(Member (a, "b"))
     => Py.(Member (a, "b"))
 
+let () = test "Array" @@ fun () ->
+  term V.(Array [a; b; c])
+    => Py.(Tuple [a; b; c])
+
+let () = test "Map" @@ fun () ->
+  term V.(Map [])
+    => Py.(Dict []);
+  term V.(Map [a, b; c, d])
+    => Py.(Dict [a, b; c, d])
+
 (* ITEM *)
 
 let () = test "Let" @@ fun () ->

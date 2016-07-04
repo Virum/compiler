@@ -45,6 +45,23 @@ let () = test "Member" @@ fun () ->
   term V.(Member (a, "b"))
     => JS.(Member (a, String "b"))
 
+let () = test "Array" @@ fun () ->
+  term V.(Array [a; b; c])
+    => JS.(Array [a; b; c])
+
+let () = test "Map[String, Any]" @@ fun () ->
+  term V.(Map [])
+    => JS.(Object []);
+  term V.(Map [String "a", a; String "b", b])
+    => JS.(Object ["a", a; "b", b])
+
+let () = test "Map[Any, Any]" @@ fun () ->
+  term V.(Map [a, b; c, d])
+    => JS.(NewCall (Function (None, [], [
+         Term (Infix (Member (Identifier "this", a), Operator.Assignment, b));
+         Term (Infix (Member (Identifier "this", c), Operator.Assignment, d));
+       ]), []))
+
 (* ITEM *)
 
 let () = test "Module" @@ fun () ->

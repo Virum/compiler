@@ -57,6 +57,13 @@ module Term = struct
     | V.Member (term, member) ->
         Py.(Member (compile term, member))
 
+    | V.Array terms ->
+        Py.(Tuple (List.map ~f:compile terms))
+
+    | V.Map pairs ->
+        let compile_pair (left, right) = compile left, compile right in
+        Py.(Dict (List.map ~f:compile_pair pairs))
+
     | _ -> assert false
 end
 

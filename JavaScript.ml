@@ -60,10 +60,12 @@ type term =
   | Number of float
   | Function of string option * parameters * statement list
   | Call of term * arguments
+  | NewCall of term * term list
   | Member of term * term
   | Infix of term * Operator.t * term
   | Prefix of Operator.Prefix.t * term
   | Object of (string * term) list
+  | Array of term list
 
 and arguments = term list
 
@@ -74,10 +76,11 @@ and statement =
   | Var of string * term
 
 let binding = function
-  | Number _ | Identifier _ | String _ | Object _ -> `None 999
+  | Number _ | Identifier _ | String _ | Object _ | Array _ -> `None 999
   | Infix (_, operator, _) -> Operator.binding operator
   | Prefix (operator, _) -> Operator.Prefix.binding operator
   | Call _ -> `Left 17
+  | NewCall _ -> `Left 18
   | Member _ -> `Left 18
   | Function _ -> `None 0
 
@@ -124,6 +127,9 @@ and format_term_naive f format_left format_right = function
   | Call (callee, arguments) -> fprintf f
       "%a(@[<hv>%a@])" format_left callee
                        (format_comma_separated format_term) arguments
+  | NewCall (callee, arguments) -> fprintf f
+      "new %a(@[<hv>%a@])" format_left callee
+                           (format_comma_separated format_term) arguments
   | Member (value, String string)
     when Render.is_valid_identifier string -> fprintf f
       "%a.%s" format_left value string
@@ -137,6 +143,8 @@ and format_term_naive f format_left format_right = function
   | Object pairs -> fprintf f
       "@[<hv 2>{@,%a@;<0 -2>}@]"
         (format_comma_separated format_pair) pairs
+  | Array items -> fprintf f
+      "@[<hv 2>[@,%a@;<0 -2>]@]" (format_comma_separated format_term) items
 
 and format_term f =
   Render.make_infix_format

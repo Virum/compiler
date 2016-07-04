@@ -58,6 +58,19 @@ module Term = struct
         JS.(Call (compile callee, [compile argument]))
     | V.Member (term, member) ->
         JS.(Member (compile term, String member))
+    | V.Array terms ->
+        JS.(Array (List.map ~f:compile terms))
+    | V.Map pairs ->
+        if List.for_all pairs ~f:(function V.String _, _ -> true | _ -> false)
+          then
+            JS.(Object (List.map pairs ~f:(function V.String key, term ->
+              (key, compile term) | _ -> assert false)))
+          else
+            let compile_pair (key, value) =
+              JS.(Term (Infix (Member (Identifier "this", compile key),
+                               Operator.Assignment,
+                               compile value))) in
+            JS.(NewCall (Function (None, [], List.map ~f:compile_pair pairs), []))
     | _ -> assert false
 end
 

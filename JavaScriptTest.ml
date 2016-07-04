@@ -43,6 +43,10 @@ let () = test "Call" @@ fun () ->
 a(parameters_too_long_to_fit_on_a_single_line,
   parameters_too_long_to_fit_on_a_single_line);"
 
+let () = test "NewCall" @@ fun () ->
+  to_string (Term (NewCall (a, [])))
+    => "new a();"
+
 let () = test "Prefix" @@ fun () ->
   to_string (Term (Prefix (Operator.Prefix.Not, a)))
     => "!a;";
@@ -58,6 +62,20 @@ let () = test "Member access" @@ fun () ->
     => "a.b;";
   to_string (Term (Member (a, String "?")))
     => "a[\"?\"];"
+
+let () = test "Array" @@ fun () ->
+  to_string (Term (Array []))
+    => "[];";
+  to_string (Term (Array [a; b; c]))
+    => "[a, b, c];";
+  to_string (Term (Array [
+    Identifier "this_term_too_long_to_fit_in_one_line";
+    Identifier "this_term_too_long_to_fit_in_one_line";
+  ]))
+    => "[
+  this_term_too_long_to_fit_in_one_line,
+  this_term_too_long_to_fit_in_one_line
+];"
 
 let () = test "Function" @@ fun () ->
   to_string (Term (Function (None, [], [])))
