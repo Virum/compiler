@@ -103,9 +103,9 @@ let rec compile_module_body name body =
 
 and compile = function
   | V.Module (name, body) ->
-      JS.(Var (name, Prefix (Operator.Prefix.New, (Call (
+      JS.(Var (name, NewCall (
         Function (Some name, [], compile_module_body name body),
-      [])))))
+      [])))
 
   | V.Let ((name, _), None, term) ->
       JS.(Var (name, Term.compile term))

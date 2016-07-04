@@ -66,16 +66,16 @@ let () = test "Map[Any, Any]" @@ fun () ->
 
 let () = test "Module" @@ fun () ->
   item V.(Module ("foo", []))
-    => JS.(Var ("foo", Prefix (Operator.Prefix.New, (Call (
+    => JS.(Var ("foo", NewCall (
          Function (Some "foo", [], [
 
          ]),
-       [])))));
+       [])));
   item V.(Module ("foo", [
     Let (("a", "T"), None, b);
     Let (("b", "T"), None, c);
   ]))
-    => JS.(Var ("foo", Prefix (Op.Prefix.New, (Call (
+    => JS.(Var ("foo", NewCall (
          Function (Some "foo", [], [
            Var ("a", b);
            Var ("b", c);
@@ -83,31 +83,31 @@ let () = test "Module" @@ fun () ->
            Term (Infix (Member (id "this", String "a"), Op.Assignment, id "a"));
            Term (Infix (Member (id "this", String "b"), Op.Assignment, id "b"));
          ]),
-       [])))));
+       [])));
   item V.(Module ("foo", [
     Module ("bar", [])
   ]))
-    => JS.(Var ("foo", Prefix (Operator.Prefix.New, (Call (
+    => JS.(Var ("foo", NewCall (
          Function (Some "foo", [], [
 
-           JS.(Var ("bar", Prefix (Operator.Prefix.New, (Call (
+           JS.(Var ("bar", NewCall (
              Function (Some "bar", [], [
 
              ]),
-           [])))));
+           [])));
 
            Term (Infix (Member (id "this", String "bar"),
                         Op.Assignment, id "bar"));
          ]),
-       [])))));
+       [])));
   item V.(Module ("foo", [
     Do (Call (Identifier "factorial", Number 5));
   ]))
-    => JS.(Var ("foo", Prefix (Operator.Prefix.New, (Call (
+    => JS.(Var ("foo", NewCall (
          Function (Some "foo", [], [
            Term (Call (Identifier "factorial", [Number 5.]));
          ]),
-       [])))))
+       [])))
 
 let () = test "Let" @@ fun () ->
   item V.(Let (("a", "T"), None, b))
