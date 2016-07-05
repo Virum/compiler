@@ -138,6 +138,16 @@ elif c:
 else:
     pass"
 
+let () = test "Include" @@ fun () ->
+  to_string (Def (None, "f", [], [
+    Include ["anything"; "goes"]
+  ]))
+    => "\
+def f():
+    anything
+    goes"
+
+
 let () = test "Integration" @@ fun () ->
   let n = Identifier "n" in
   to_string (Def (None, "factorial", ["n"], [

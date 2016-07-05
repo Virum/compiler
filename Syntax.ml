@@ -37,6 +37,7 @@ and case = pattern * term
 type item =
   | Let of pattern typed * pattern typed list option * term
   | Do of term
+  | Import of string
   | Module of string * item list
   | Class of string * pattern typed list * item list
   [@@deriving sexp]
@@ -51,7 +52,10 @@ let dump_item t = print_endline (Sexplib.Sexp.to_string_hum (sexp_of_item t))
 
 
 let binding = function
-  | Let ((name, _), _, _) | Module (name, _) | Class (name, _, _) -> Some name
+  | Let ((name, _), _, _)
+  | Module (name, _)
+  | Class (name, _, _)
+  | Import name -> Some name
   | Do _ -> None
 
 let bindings = List.filter_map ~f:binding

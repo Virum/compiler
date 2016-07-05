@@ -37,6 +37,10 @@ task :time => :ppx do
   sh 'rake clean && time rake test'
 end
 
+task :resources do
+  sh 'ocp-ocamlres -format="ocaml" -subformat "py" "lines" -subformat "js" "lines" resources > resources.ml'
+end
+
 def ocamlbuild targets
   targets = targets.map {|target| target.sub BUILD_DIR_REGEX, ''}.join ' '
   sh %{ocamlbuild -quiet -build-dir #{BUILD_DIR} -I vendor \

@@ -75,24 +75,13 @@ module Term = struct
 end
 
 
-let compile_prelude name =
+let compile_prelude name parameters =
   let open JS in let module Op = JS.Operator in
+  let arguments = List.map parameters ~f:(fun name -> Identifier name) in
   IfElse (
-    Prefix (Op.Prefix.Not, (Infix (id "this", Op.Instanceof, id name))),
-    [
-      Return (
-        Prefix (
-          Op.Prefix.New,
-          Call (
-            Member (
-              Member (
-                Member (id "Function", String "prototype"),
-                String "bind"),
-              String "apply"),
-            [id name; id "arguments"])));
-    ],
-    []
-  )
+    Prefix (Op.Prefix.Not, (Infix (id "this", Op.Instanceof, id name))), [
+      Return (NewCall (Identifier name, arguments));
+    ], [])
 
 let rec compile_module_body name body =
   let compile_assignment name =
@@ -117,8 +106,13 @@ and compile = function
   | V.Do term ->
       JS.Term (Term.compile term)
 
+  | V.Import name ->
+      assert (name = "http");
+      let lines = Resources.JavaScript.http_js in
+      JS.Include lines
+
   | V.Class (name, parameters, body) ->
       let parameters = V.parameter_names parameters in
       JS.(Var (name, Function (Some name, parameters,
-        compile_prelude name :: compile_module_body name body
+        compile_prelude name parameters :: compile_module_body name body
       )))

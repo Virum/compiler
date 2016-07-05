@@ -127,18 +127,7 @@ let () = test "Class" @@ fun () ->
            Prefix (Operator.Prefix.Not, (Infix (Identifier "this",
                                          Operator.Instanceof,
                                          Identifier "Foo"))), [
-           Return (
-             Prefix (
-               Operator.Prefix.New,
-               Call (
-                 Member (
-                   Member (
-                     Member(
-                       Identifier "Function",
-                       String "prototype"),
-                     String "bind"),
-                   String "apply"),
-                 [Identifier "Foo"; Identifier "arguments"])));
+             Return (NewCall (Identifier "Foo", [a; b]));
          ],
          []);
 

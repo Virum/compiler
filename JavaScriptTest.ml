@@ -112,6 +112,24 @@ function () {
   c;
 };"
 
+let () = test "Include" @@ fun () ->
+  to_string (Term (Function (None, [], [
+    Include ["anything"; "goes"];
+  ])))
+    => "function () {\n  \n  anything\n  goes\n};";
+  to_string (Term (Function (None, [], [
+    Term a;
+    Include ["anything"; "goes"];
+    Term b;
+  ])))
+    => "\
+function () {
+  a;
+  anything
+  goes
+  b;
+};"
+
 let () = test "If-else" @@ fun () ->
   to_string (IfElse (a, [], []))
     => "if (a) {} else {}";

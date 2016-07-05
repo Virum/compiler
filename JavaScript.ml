@@ -71,6 +71,7 @@ and arguments = term list
 
 and statement =
   | Return of term
+  | Include of string list
   | Term of term
   | IfElse of term * statement list * statement list
   | Var of string * term
@@ -86,6 +87,8 @@ let binding = function
 
 let box f tail = if tail then text "" f () else text "@[<v 2>" f ()
 
+let break f () = fprintf f "@<80>@ "
+
 let rec format_statements f statements =
   (* "@<80>%s" forces a line break no matter what box we are in. *)
   let sep f () = fprintf f "@<80>%s" "" in
@@ -100,7 +103,7 @@ and format_pair f (name, term) =
 
 and format_statement tail f = function
   | Term term -> fprintf f
-     "@[<hv 2>%a;@]" format_term term
+     "@[<v 2>%a;@]" format_term term
   | IfElse (condition, consequence, [IfElse _ as nested_if_else]) -> fprintf f
       "%aif (%a) {%a@]@[<v 2>} else %a"
         box tail
@@ -117,6 +120,8 @@ and format_statement tail f = function
       "@[<hv 2>return %a;@]" format_term term
   | Var (name, term) -> fprintf f
       "@[<hv 2>var %s = %a;@]" name format_term term
+  | Include lines -> fprintf f
+      "%a" (format_list ~start:break ~sep:break format_string) lines
 
 and format_term_naive f format_left format_right = function
   | Identifier id -> fprintf f

@@ -162,6 +162,10 @@ let () = test "Let" @@ fun () ->
   items "let x(a: A, b: B, c: C): X = a"
     => Ok [Let (("x", "X"), Some [("a", "A"); ("b", "B"); ("c", "C")], a)]
 
+let () = test "Import" @@ fun () ->
+  items "import html"
+     => Ok [Import "html"]
+
 let () = test "Module" @@ fun () ->
   items "
     module foo {

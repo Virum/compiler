@@ -83,6 +83,11 @@ let rec compile = function
   | V.Do term ->
       Py.Term (Term.compile term)
 
+  | V.Import name ->
+      assert (name = "http");
+      let lines = Resources.Python.http_py in
+      Py.Include lines
+
   | V.Module (name, body) ->
       let body' = List.map body ~f:compile in
       let name_to_pair name = Py.(String name, Identifier name) in

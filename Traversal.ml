@@ -69,6 +69,9 @@ let rec compile ~f = function
       let%bind term = f term in
       Ok (Do term)
 
+  | Import name as import ->
+      Ok import
+
   | Module (name, items) ->
       let%bind items = items |> List.map ~f:(compile ~f) |> Result.all in
       Ok (Module (name, items))

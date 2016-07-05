@@ -51,6 +51,7 @@ and block = statement list
 
 and statement =
   | Pass
+  | Include of string list
   | Return of term
   | Term of term
   | If of term * block * if_tail
@@ -139,6 +140,8 @@ let rec format_statement f = function
         name
         superclass
         (format_list ~sep:(text "\n@,") format_statement) body
+  | Include lines -> fprintf f
+      "@[<v 0>%a@]" (format_list ~sep:(text "@,") format_string) lines
 
 and format_tail f = function
   | Else block -> fprintf f

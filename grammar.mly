@@ -40,6 +40,8 @@ item:
   { Let ((left, type_), parameters, right) }
 | DO term=term
   { Do term }
+| IMPORT name=ID
+  { Import name }
 | MODULE name=ID body=braced(item*)
   { Module (name, body) }
 | CLASS name=ID parameters=parameters body=braced(item*)
