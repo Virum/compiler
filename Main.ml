@@ -1,5 +1,7 @@
 module String = Core_kernel.Std.String
 
+let (>>) f g x = g (f x)
+
 module Result = struct
   module Infix = struct
     let (>>=) = function
@@ -25,14 +27,22 @@ end
 
 open Result.Infix
 
+let parse_argv = function
+  | [| _; "javascript"; file_name |] ->
+      (ToJavaScript.compile >> JavaScript.to_string), file_name
+  | [| _; "python"; file_name |] ->
+      (ToPython.compile >> Python.to_string), file_name
+  | _ ->
+      Printf.eprintf "Usage: virum (javascript | python) <file.virum>\n";
+      exit 1
+
 let () =
-  let file_name = Sys.argv.(1) in
+  let compile, file_name = parse_argv Sys.argv in
   let module_name = String.chop_suffix_exn file_name ~suffix:".virum" in
   let result =
     Parser.Items.parse_channel (open_in file_name)
       >>| (fun items -> Syntax.Module (module_name, items))
-      >>| ToJavaScript.compile
-      >>| JavaScript.to_string
+      >>| compile
   in
   result
     |> Result.map_error Error.to_string
