@@ -1,5 +1,7 @@
 {
   open Grammar
+  module Rope = Core_kernel.Std.Rope
+  module Char = Core_kernel.Std.Char
 
   let hex_digits = "0123456789abcdefABCDEF"
   let is_hex_digit = String.contains hex_digits
@@ -78,30 +80,30 @@ rule read = parse
   | "||" { PIPE_PIPE     }
   | "@"  { AT            }
   | line_comment { read lexbuf }
-  | '"' { read_string (Buffer.create 16) lexbuf }
+  | '"' { read_string (Rope.of_string "") lexbuf }
   | number_literal as source { NUMBER (int_of_string source) }
   | identifier as id { parse_identifier id }
   | eof { EOF }
   | _ { raise Grammar.Error }
 
-and read_string buffer = parse
-  | '"' { STRING (Buffer.contents buffer) }
+and read_string rope = parse
+  | '"' { STRING (Rope.to_string rope) }
 
   | "\\x" (_ as first) (_ as second) as source
     {
       if is_hex_digit first && is_hex_digit second then
-        (Buffer.add_string buffer (Scanf.unescaped source);
-        read_string buffer lexbuf)
+        let rope = Rope.(rope ^ of_string (Scanf.unescaped source)) in
+        read_string rope lexbuf
       else
         raise (Error (`Bad_escape_sequence source))
     }
   | "\\" (_ as char) as source
     { if not (String.contains "nrt\\\"" char) then
         raise (Error (`Bad_escape_sequence source));
-      Buffer.add_string buffer (Scanf.unescaped source);
-      read_string buffer lexbuf }
+      let rope = Rope.(rope ^ of_string (Scanf.unescaped source)) in
+      read_string rope lexbuf }
 
   | _ # '"' as char
     { if char = '\n' then Lexing.new_line lexbuf;
-      Buffer.add_char buffer char;
-      read_string buffer lexbuf }
+      let rope = Rope.(rope ^ of_string (Char.to_string char)) in
+      read_string rope lexbuf }
