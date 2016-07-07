@@ -118,6 +118,11 @@ and format_statement tail f = function
         format_term condition
         format_statements consequence
         (format_statement true) nested_if_else
+  | IfElse (condition, consequence, []) -> fprintf f
+      "%aif (%a) {%a@]}"
+        box tail
+        format_term condition
+        format_statements consequence
   | IfElse (condition, consequence, alternative) -> fprintf f
       "%aif (%a) {%a@]@[<v 2>} else {%a}@]"
         box tail

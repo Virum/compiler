@@ -140,7 +140,7 @@ function () {
 
 let () = test "If-else" @@ fun () ->
   to_string (IfElse (a, [], []))
-    => "if (a) {} else {}";
+    => "if (a) {}";
   to_string (IfElse (a, [Term b; Term c], [Term d]))
     => "\
 if (a) {
@@ -286,11 +286,13 @@ var Client = function Client(api_key) {
 let () = test "Integration: Class prelude" @@ fun () ->
   to_string (
     Var ("Client", (Function (Some "Client", ["api_key"], [
-      IfElse (a, [], []);
+      IfElse (a, [Term b], []);
       Return d;
     ])))
   ) => "\
 var Client = function Client(api_key) {
-  if (a) {} else {}
+  if (a) {
+    b;
+  }
   return d;
 };"
