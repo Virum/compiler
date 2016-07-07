@@ -10,7 +10,7 @@ let () = test "Number" @@ fun () ->
   to_string (Term (Number 10.)) => "10;";
   to_string (Term (Number Float.infinity)) => "Infinity;";
   to_string (Term (Number Float.neg_infinity)) => "-Infinity;";
-  to_string (Term (Number Float.nan)) =>> "NaN;";
+  to_string (Term (Number Float.nan)) => "NaN;";
   to_string (Term (Number (1. /. 3.))) => "0.33333333333333331;";
   to_string (Term (Number 1e23)) => "1e+23;"
 

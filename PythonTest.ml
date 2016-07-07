@@ -1,12 +1,18 @@
 let test, (=>) = Test.(test, (=>))
 open Python
 module Op = Python.Operator
+module Float = Core_kernel.Std.Float
 
 let (=>>) left right = left => right; print_endline left
 
 let () = test "Number" @@ fun () ->
-  to_string (Term (Number 1.)) => "1.";
-  to_string (Term (Number 1.2)) => "1.2"
+  to_string (Term (Number 1.2)) => "1.2";
+  to_string (Term (Number 10.)) => "10.0";
+  to_string (Term (Number Float.infinity)) => "float('inf')";
+  to_string (Term (Number Float.neg_infinity)) => "float('-inf')";
+  to_string (Term (Number Float.nan)) => "float('nan')";
+  to_string (Term (Number (1. /. 3.))) => "0.33333333333333331";
+  to_string (Term (Number 1e23)) => "1e+23"
 
 let () = test "String" @@ fun () ->
   to_string (Term (String "s")) => {|"s"|}
@@ -160,7 +166,7 @@ let () = test "Integration" @@ fun () ->
     ])
   ])) => "\
 def factorial(n):
-    if n == 0.:
-        return 1.
+    if n == 0.0:
+        return 1.0
     else:
-        return factorial(n - 1.) * n"
+        return factorial(n - 1.0) * n"

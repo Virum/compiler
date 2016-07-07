@@ -1,6 +1,8 @@
 let fprintf = Format.fprintf
 let text, format_list, format_string = Render.(text, format_list, format_string)
 let format_comma_separated = Render.format_comma_separated
+module Float = Core_kernel.Std.Float
+module String = Core_kernel.Std.String
 
 module Operator = struct
   type t =
@@ -71,6 +73,18 @@ let binding = function
   | IfElse _ -> `Left 2
   | Lambda _ -> `Left 1
 
+let float_to_string float =
+  match Float.classify float with
+  | Float.Class.Infinite when Float.is_negative float -> "float('-inf')"
+  | Float.Class.Infinite -> "float('inf')"
+  | Float.Class.Nan -> "float('nan')"
+  | _ ->
+      let string = Float.to_string_round_trippable float in
+      (* Dropping fractional part (like `10.`) is valid in Python,
+         but it does not compose with method calls (`10..hex()` is invalid),
+         so we generate `10.0` to safely be able to write `10.0.hex()`. *)
+      if String.is_suffix string ~suffix:"." then string ^ "0" else string
+
 let rec format_pair f (left, right) =
   fprintf f "%a: %a" format_term left format_term right
 
@@ -78,7 +92,7 @@ and format_term_naive f format_left format_right = function
   | Identifier id -> fprintf f
       "%s" id
   | Number float -> fprintf f
-      "%F" float
+      "%s" (float_to_string float)
   | String string -> fprintf f
       "%s" (Render.escape_string string)
   | Infix (left, op, right) -> fprintf f
