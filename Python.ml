@@ -1,8 +1,8 @@
+open Core_kernel.Std
+
 let fprintf = Format.fprintf
 let text, format_list, format_string = Render.(text, format_list, format_string)
 let format_comma_separated = Render.format_comma_separated
-module Float = Core_kernel.Std.Float
-module String = Core_kernel.Std.String
 
 module Operator = struct
   type t =

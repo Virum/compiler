@@ -1,7 +1,8 @@
+open Core_kernel.Std
+
 let test, (=>) = Test.(test, (=>))
 open Python
 module Op = Python.Operator
-module Float = Core_kernel.Std.Float
 
 let (=>>) left right = left => right; print_endline left
 

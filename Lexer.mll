@@ -1,7 +1,6 @@
 {
+  open Core_kernel.Std
   open Grammar
-  module Rope = Core_kernel.Std.Rope
-  module Char = Core_kernel.Std.Char
 
   let hex_digits = "0123456789abcdefABCDEF"
   let is_hex_digit = String.contains hex_digits

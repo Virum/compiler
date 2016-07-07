@@ -1,7 +1,8 @@
+open Core_kernel.Std
+
 let test, (=>) = Test.(test, (=>))
 open JavaScript
 module Op = JavaScript.Operator
-module Float = Core_kernel.Std.Float
 
 let (=>>) left right = print_newline (); print_endline left; left => right
 
