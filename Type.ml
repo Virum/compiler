@@ -13,6 +13,8 @@ type t =
   | Number
   | String
   | Tuple of t list (* length <> 1 *)
+  | Array of t
+  | Map of t * t
   | Arrow of t * t
   | Class of string * environment * environment
   | Module of string * environment * environment
@@ -29,6 +31,10 @@ let rec to_string = function
   | String  -> "String"
   | Tuple items ->
       "(" ^ String.concat ~sep:", " (List.map items ~f:to_string) ^ ")"
+  | Array item ->
+      Printf.sprintf "Array[%s]" (to_string item)
+  | Map (key, value) ->
+      Printf.sprintf "Map[%s, %s]" (to_string key) (to_string value)
   | Arrow (left, right) ->
       "(" ^ to_string left ^ " -> " ^ to_string right ^ ")"
   | Class _ -> "Class"
@@ -133,8 +139,24 @@ module Term = struct
         let%bind body_t = infer tenv body_env body in
         Ok body_t
 
-    | V.Map _
-    | V.Array _
+    | V.Array items ->
+        let%bind types = items |> List.map ~f:(infer tenv env) |> Result.all in
+        (match List.dedup types with
+        | [] -> Error [`Empty_array_needs_type_annotation]
+        | [type_] -> Ok (Array type_)
+        | types -> Error [`Heterogeneous_array (List.map ~f:to_string types)])
+
+    | V.Map pairs ->
+        let%bind pairs_of_types =
+          pairs |> Pair.List.map ~f:(infer tenv env)
+                |> List.map ~f:(Pair.uncurry Result.both)
+                |> Result.all in
+        (match List.dedup pairs_of_types with
+        | [] -> Error [`Empty_map_needs_type_annotation]
+        | [key_t, value_t] -> Ok (Map (key_t, value_t))
+        | type_pairs ->
+            Error [`Heterogeneous_map (Pair.List.map type_pairs ~f:to_string)])
+
     | V.Member _
     | V.CaseFunction _
     | V.Extension _

@@ -178,6 +178,47 @@ let () = test "Let-in" @@ fun () ->
     => Ok (Tuple [Number; Boolean])
 
 
+let () = test "Array[T]" @@ fun () ->
+
+  term [] ["b", Boolean; "s", String]
+      V.(Array [])
+    => Error [`Empty_array_needs_type_annotation];
+
+  term [] ["b", Boolean; "s", String]
+      V.(Array [b])
+    => Ok (Array Boolean);
+
+  term [] ["b", Boolean; "s", String]
+    V.(Array [b; b])
+    => Ok (Array Boolean);
+
+  term [] ["b", Boolean; "a", String]
+    V.(Array [b; a; Identifier "bogus"])
+    => Error [`Unbound_identifier "bogus"];
+
+  term [] ["b", Boolean; "a", String]
+    V.(Array [b; a])
+    => Error [`Heterogeneous_array ["Boolean"; "String"]]
+
+
+let () = test "Map[K, V]" @@ fun () ->
+
+  term [] []
+      V.(Map [])
+    => Error [`Empty_map_needs_type_annotation];
+
+  term [] ["a", Boolean; "b", String]
+      V.(Map [a, b])
+    => Ok (Map (Boolean, String));
+
+  term [] ["a", Boolean; "b", String]
+    V.(Map [a, b; a, b])
+    => Ok (Map (Boolean, String));
+
+  term [] ["b", Boolean; "a", String]
+    V.(Map [b, a; a, b])
+    => Error [`Heterogeneous_map ["Boolean", "String"; "String", "Boolean"]]
+
 (* Items *)
 
 let () = test "Do" @@ fun () ->
