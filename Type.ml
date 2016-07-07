@@ -239,4 +239,8 @@ let rec infer tenv env = function
       end in
       Ok (Module (name, tenv', env'))
 
-  | _ -> assert false
+  | V.Class _ ->
+      assert false
+
+  | V.Import _ ->
+      assert false

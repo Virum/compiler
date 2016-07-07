@@ -1,11 +1,18 @@
 let test, (=>) = Test.(test, (=>))
 open JavaScript
 module Op = JavaScript.Operator
+module Float = Core_kernel.Std.Float
 
 let (=>>) left right = print_newline (); print_endline left; left => right
 
 let () = test "Number" @@ fun () ->
-  to_string (Term (Number 1.2)) => "1.2;"
+  to_string (Term (Number 1.2)) => "1.2;";
+  to_string (Term (Number 10.)) => "10;";
+  to_string (Term (Number Float.infinity)) => "Infinity;";
+  to_string (Term (Number Float.neg_infinity)) => "-Infinity;";
+  to_string (Term (Number Float.nan)) =>> "NaN;";
+  to_string (Term (Number (1. /. 3.))) => "0.33333333333333331;";
+  to_string (Term (Number 1e23)) => "1e+23;"
 
 let () = test "String" @@ fun () ->
   to_string (Term (String "s")) => {|"s";|};
@@ -226,13 +233,13 @@ let () = test "Integration" @@ fun () ->
     )
   )) => "\
 (function (factorial) {
-  return console.log(factorial(5.));
+  return console.log(factorial(5));
 })(function factorial(n) {
    return (function () {
-     if (n == 0.) {
-       return 1.;
+     if (n == 0) {
+       return 1;
      } else {
-       return factorial(n - 1.) * n;
+       return factorial(n - 1) * n;
      }
      })();
    });"

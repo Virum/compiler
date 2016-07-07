@@ -1,5 +1,7 @@
 let fprintf = Format.fprintf
 module Option = Core_kernel.Option
+module Float = Core_kernel.Std.Float
+module String = Core_kernel.Std.String
 let text, format_list, format_string = Render.(text, format_list, format_string)
 let format_comma_separated = Render.format_comma_separated
 
@@ -85,6 +87,13 @@ let binding = function
   | Member _ -> `Left 18
   | Function _ -> `None 0
 
+let number_to_string float =
+  match Float.classify float with
+  | Float.Class.Infinite when Float.is_negative float -> "-Infinity"
+  | Float.Class.Infinite -> "Infinity"
+  | Float.Class.Nan -> "NaN"
+  | _ -> Float.to_string_round_trippable float |> String.rstrip ~drop:((=) '.')
+
 let box f tail = if tail then text "" f () else text "@[<v 2>" f ()
 
 let break f () = fprintf f "@<80>@ "
@@ -127,7 +136,7 @@ and format_term_naive f format_left format_right = function
   | Identifier id -> fprintf f
       "%s" id
   | Number float -> fprintf f
-      "%F" float
+      "%s" (number_to_string float)
   | String string -> fprintf f
       "%s" (Render.escape_string string)
   | Infix (left, op, right) -> fprintf f
