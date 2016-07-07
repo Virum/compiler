@@ -1,3 +1,5 @@
+open Core_kernel.Std
+
 let fprintf = Format.fprintf
 
 let parenthesise f =
@@ -20,24 +22,19 @@ let make_infix_format ~binding ~format_naive =
       else format_rec f node
   in format
 
-let escape_char char =
-  let code = Char.code char in
-  assert (code >= 0 && code < 128);
-  match char with
+let escape_char = function
   | '"' -> "\\" ^ "\""
   | '\b' -> "\\" ^ "b"
   | '\n' -> "\\" ^ "n"
   | '\r' -> "\\" ^ "r"
   | '\t' -> "\\" ^ "t"
-  | _ when code < 32 || code = 127 -> Printf.sprintf "\\u%.4x" code
-  | _ -> Printf.sprintf "%c" char
+  | char when Char.is_print char -> Char.to_string char
+  | char -> sprintf "\\u%.4x" (Char.to_int char)
 
 let escape_string ?(start="\"") ?(finish="\"") string =
-  let buffer = Buffer.create 16 in
-  Buffer.add_string buffer start;
-  String.iter (fun char -> escape_char char |> Buffer.add_string buffer) string;
-  Buffer.add_string buffer finish;
-  Buffer.to_bytes buffer
+  let fold rope char = Rope.(rope ^ of_string (escape_char char)) in
+  let rope = String.fold string ~init:(Rope.of_string start) ~f:fold in
+  Rope.(rope ^ of_string finish |> to_string)
 
 let matches re string =
   let result = Str.(string_match (regexp (re ^ "$"))) string 0 in
@@ -64,4 +61,3 @@ let format_list
 
 let format_comma_separated format_item =
   format_list ~sep:(text ",@ ") format_item
-

@@ -2,8 +2,7 @@
   open Core_kernel.Std
   open Grammar
 
-  let hex_digits = "0123456789abcdefABCDEF"
-  let is_hex_digit = String.contains hex_digits
+  let is_hex_digit char = Render.matches "[1-9a-fA-F]" (Char.to_string char)
 
   let parse_identifier = function
     | "and"       -> AND
