@@ -189,8 +189,10 @@ let () = test "Object literal" @@ fun () ->
     => "{};";
   to_string (Term (Object [("x", a); ("y", b)]))
     => "{x: a, y: b};";
-  to_string (Term (Object [("object_too_long_to_fit_on_one_line", a);
-                     ("object_too_long_to_fit_on_one_line", b)]))
+  to_string (Term (Object [
+    "object_too_long_to_fit_on_one_line", a;
+    "object_too_long_to_fit_on_one_line", b;
+  ]))
     => "{
   object_too_long_to_fit_on_one_line: a,
   object_too_long_to_fit_on_one_line: b
@@ -242,8 +244,8 @@ let () = test "Integration" @@ fun () ->
      } else {
        return factorial(n - 1) * n;
      }
-     })();
-   });"
+   })();
+ });"
 (* Wish:
   (function (factorial) {
     return console.log(factorial(5));
@@ -279,4 +281,16 @@ var Client = function Client(api_key) {
     return console.log(\"sent to \" + mail_to);
   };
   return {api_key: api_key, send: send};
+};"
+
+let () = test "Integration: Class prelude" @@ fun () ->
+  to_string (
+    Var ("Client", (Function (Some "Client", ["api_key"], [
+      IfElse (a, [], []);
+      Return d;
+    ])))
+  ) => "\
+var Client = function Client(api_key) {
+  if (a) {} else {}
+  return d;
 };"
