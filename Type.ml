@@ -86,6 +86,13 @@ module Environment = struct
   let add_value env key value =
     {env with values=Table.add env.values key value}
 
+  let add_many_values env pairs ~error =
+    let%bind values = match Table.of_alist pairs with
+      | `Duplicate_key key -> Error (error key)
+      | `Ok values -> Ok values in
+    let values = Table.merge_right env.values values in
+    Ok ({env with values})
+
   let empty = {types=Table.empty; values=Table.empty}
 end
 module Env = Environment
@@ -232,12 +239,10 @@ let infer_parameter env = function
       in
       let%bind pairs = parameters |> List.map ~f:pair_to_type |> Result.all in
       let types = List.map ~f:snd pairs in
-      let%bind parameters_venv = Table.of_alist pairs |> (function
-        | `Duplicate_key key -> Error [`Duplicate_parameter_name key]
-        | `Ok venv -> Ok venv)
-      in
-      let new_env = Table.merge_right env.values parameters_venv in
-      Ok ({env with values=new_env}, Tuple types)
+      let%bind env =
+        Env.add_many_values env pairs
+          ~error:(fun key -> [`Duplicate_parameter_name key]) in
+      Ok (env, Tuple types)
 
 
 let rec infer env = function
