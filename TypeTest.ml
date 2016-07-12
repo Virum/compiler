@@ -5,12 +5,11 @@ open Type
 module Table = Type.Table
 module V = Syntax
 
-let env = Table.of_alist_exn
+let table = Table.of_alist_exn
 let term tenv_alist env_alist term =
-  Term.infer {types=(env tenv_alist); values=(env env_alist)} term
+  Term.infer {types=table tenv_alist; values=table env_alist} term
 let item tenv_alist env_alist term =
-  infer {types=(env tenv_alist); values=(env env_alist)} term
-(*   infer (env tenv_alist) (env env_alist) term *)
+  infer {types=table tenv_alist; values=table env_alist} term
 
 
 let () = test "Subtyping" @@ fun () ->
@@ -230,11 +229,11 @@ let () = test "Member" @@ fun () ->
     V.(Member (a, "member"))
     => Error [`Member_does_not_belong ("member", "String")];
 
-  term [] ["a", Module ("M", {types=env []; values=env ["member", Number]})]
+  term [] ["a", Module ("M", {types=table []; values=table ["member", Number]})]
     V.(Member (a, "bogus"))
     => Error [`Member_does_not_belong ("bogus", "module M")];
 
-  term [] ["a", Module ("M", {types=env []; values=env ["member", Number]})]
+  term [] ["a", Module ("M", {types=table []; values=table ["member", Number]})]
     V.(Member (a, "member"))
     => Ok Number
 
@@ -367,19 +366,19 @@ let () = test "Module" @@ fun () ->
 
   item ["Number", Number] []
       V.(Module ("Foo", []))
-    => Module ("Foo", {types=env []; values=env []});
+    => Module ("Foo", Env.empty);
 
   item ["Number", Number] []
       V.(Module ("Foo", [
         Do (Tuple []);
       ]))
-    => Module ("Foo", {types=env []; values=env []});
+    => Module ("Foo", Env.empty);
 
   item ["Number", Number] []
       V.(Module ("Foo", [
         Let (("a", "Number"), None, Number 1);
       ]))
-    => Module ("Foo", {types=env []; values=env ["a", Number]})
+    => Module ("Foo", {types=table []; values=table ["a", Number]})
 
 
 let () = test "Module: first binding is available inside second" @@ fun () ->
@@ -389,7 +388,7 @@ let () = test "Module: first binding is available inside second" @@ fun () ->
         Let (("a", "Number"), None, Number 1);
         Let (("b", "Number"), None, a);
       ]))
-    => Module ("Foo", {types=env []; values=env [
+    => Module ("Foo", {types=table []; values=table [
          "a", Number;
          "b", Number;
        ]})
@@ -412,11 +411,11 @@ let () = test "Module: defines a new module type" @@ fun () ->
         Let (("a", "Number"), None, Number 1);
         Module ("Bar", []);
       ]))
-    => Module ("Foo", {types=env [
-         "Bar", Module ("Bar", {types=env []; values=env []});
-       ]; values=env [
+    => Module ("Foo", {types=table [
+         "Bar", Module ("Bar", Env.empty);
+       ]; values=table [
          "a", Number;
-         "Bar", Module ("Bar", {types=env []; values=env []});
+         "Bar", Module ("Bar", Env.empty);
        ]})
 
 let () = test "Module: creating alias" @@ fun () ->
@@ -427,11 +426,11 @@ let () = test "Module: creating alias" @@ fun () ->
         Module ("Bar", []);
         Let (("BarAlias", "Bar"), None, Identifier "Bar");
       ]))
-    => Module ("Foo", {types=env [
-         "Bar", Module ("Bar", {types=env []; values=env []});
-         "BarAlias", Module ("Bar", {types=env []; values=env []});
-       ]; values=env [
+    => Module ("Foo", {types=table [
+         "Bar", Module ("Bar", Env.empty);
+         "BarAlias", Module ("Bar", Env.empty);
+       ]; values=table [
          "a", Number;
-         "Bar", Module ("Bar", {types=env []; values=env []});
-         "BarAlias", Module ("Bar", {types=env []; values=env []});
+         "Bar", Module ("Bar", Env.empty);
+         "BarAlias", Module ("Bar", Env.empty);
        ]})
