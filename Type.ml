@@ -16,13 +16,15 @@ type t =
   | Array of t
   | Map of t * t
   | Arrow of t * t
-  | Class of string * environment * environment
-  | Module of string * environment * environment
+  | Class of string * environments
+  | Module of string * environments
   [@@deriving sexp]
 
 
 and environment = t Core_kernel.Std.String.Map.t
   [@@deriving sexp]
+
+and environments = {types: environment; values: environment}
 
 let rec to_string = function
   | Any     -> "Any"
@@ -37,8 +39,8 @@ let rec to_string = function
       Printf.sprintf "Map[%s, %s]" (to_string key) (to_string value)
   | Arrow (left, right) ->
       "(" ^ to_string left ^ " -> " ^ to_string right ^ ")"
-  | Class (name, _, _) -> "class " ^ name
-  | Module (name, _, _) -> "module " ^ name
+  | Class (name, _) -> "class " ^ name
+  | Module (name, _) -> "module " ^ name
 
 let print t =
   print_endline (to_string t)
@@ -82,10 +84,10 @@ let operator_signature = function
 
 module Term = struct
 
-  let rec infer_call tenv env caller_t argument = match caller_t with
+  let rec infer_call xenv caller_t argument = match caller_t with
 
     | Arrow (parameter_t, return_t) ->
-        let%bind argument_t = infer tenv env argument in
+        let%bind argument_t = infer xenv argument in
           if argument_t = parameter_t
             then Ok return_t
             else Error [`Parameter_type_does_not_match_argument]
@@ -93,7 +95,7 @@ module Term = struct
     | _ ->
         Error [`Not_a_function]
 
-  and infer tenv env = function
+  and infer xenv = function
 
     | V.Boolean _ ->
         Ok Boolean
@@ -105,42 +107,42 @@ module Term = struct
         Ok String
 
     | V.Identifier id ->
-        Env.find env id |> Result.of_option ~error:(`Unbound_identifier id)
+        Env.find xenv.values id |> Result.of_option ~error:(`Unbound_identifier id)
 
     | V.Tuple items ->
-        let%bind types = items |> List.map ~f:(infer tenv env) |> Result.all in
+        let%bind types = items |> List.map ~f:(infer xenv) |> Result.all in
         Ok (Tuple types)
 
     | V.Infix (left, operator, right) ->
         let caller_t = operator_signature operator in
-        infer_call tenv env caller_t (V.Tuple [left; right])
+        infer_call xenv caller_t (V.Tuple [left; right])
 
     | V.Call (caller, argument) ->
-        let%bind caller_t = infer tenv env caller in
-        infer_call tenv env caller_t argument
+        let%bind caller_t = infer xenv caller in
+        infer_call xenv caller_t argument
 
     | V.IfElse (condition, consequence, alternative) ->
         let%bind () =
-          let%bind condition_t = infer tenv env condition in
+          let%bind condition_t = infer xenv condition in
           if condition_t <> Boolean
             then Error [`If_condition_not_boolean]
             else Ok ()
         and return_t =
-          let%bind consequence_t = infer tenv env consequence
-          and alternative_t = infer tenv env alternative in
+          let%bind consequence_t = infer xenv consequence
+          and alternative_t = infer xenv alternative in
           if consequence_t <> alternative_t
             then Error [`If_consequence_and_alternative_types_do_not_match]
             else Ok consequence_t
         in Ok return_t
 
     | V.LetIn (name, value, body) ->
-        let%bind value_t = infer tenv env value in
-        let body_env = Env.add env name value_t in
-        let%bind body_t = infer tenv body_env body in
+        let%bind value_t = infer xenv value in
+        let body_env = Env.add xenv.values name value_t in
+        let%bind body_t = infer {xenv with values=body_env} body in
         Ok body_t
 
     | V.Array items ->
-        let%bind types = items |> List.map ~f:(infer tenv env) |> Result.all in
+        let%bind types = items |> List.map ~f:(infer xenv) |> Result.all in
         (match List.dedup types with
         | [] -> Error [`Empty_array_needs_type_annotation]
         | [type_] -> Ok (Array type_)
@@ -148,7 +150,7 @@ module Term = struct
 
     | V.Map pairs ->
         let%bind pairs_of_types =
-          pairs |> Pair.List.map ~f:(infer tenv env)
+          pairs |> Pair.List.map ~f:(infer xenv)
                 |> List.map ~f:(Pair.uncurry Result.both)
                 |> Result.all in
         (match List.dedup pairs_of_types with
@@ -158,11 +160,11 @@ module Term = struct
             Error [`Heterogeneous_map (Pair.List.map type_pairs ~f:to_string)])
 
     | V.Member (value, member) ->
-        let%bind value_t = infer tenv env value in
+        let%bind value_t = infer xenv value in
         (match value_t with
-        | Module (_, _, env) | Class (_, _, env) ->
+        | Module (_, xenv) | Class (_, xenv) ->
             let%bind member_t =
-              Env.find env member |> Result.of_option
+              Env.find xenv.values member |> Result.of_option
                 ~error:(`Member_does_not_belong (member, to_string value_t))
             in Ok member_t
         | type_ -> Error [`Member_does_not_belong (member, to_string value_t)])
@@ -202,48 +204,48 @@ let rec is_subtype left right = match left, right with
   | _ -> false
 
 
-let infer_parameter tenv env = function
+let infer_parameter xenv = function
 
   | [parameter, type_id] ->
-      let%bind parameter_t = find_type tenv type_id in
-      let env' = Env.add env parameter parameter_t in
-      Ok (env', parameter_t)
+      let%bind parameter_t = find_type xenv.types type_id in
+      let venv = Env.add xenv.values parameter parameter_t in
+      Ok (venv, parameter_t)
 
   | parameters ->
       let pair_to_type (parameter, type_id) =
-        let%bind parameter_t = find_type tenv type_id in
+        let%bind parameter_t = find_type xenv.types type_id in
         Ok (parameter, parameter_t)
       in
       let%bind pairs = parameters |> List.map ~f:pair_to_type |> Result.all in
       let types = List.map ~f:snd pairs in
-      let%bind parameters_env = Env.of_alist pairs |> (function
+      let%bind parameters_venv = Env.of_alist pairs |> (function
         | `Duplicate_key key -> Error [`Duplicate_parameter_name key]
-        | `Ok env -> Ok env)
+        | `Ok venv -> Ok venv)
       in
-      let new_env = Env.merge_right env parameters_env in
+      let new_env = Env.merge_right xenv.values parameters_venv in
       Ok (new_env, Tuple types)
 
 
-let rec infer tenv env = function
+let rec infer ({types=tenv; values=env} as xenv) = function
 
   | V.Do term ->
-      let%bind term_t = Term.infer tenv env term in
+      let%bind term_t = Term.infer xenv term in
       if term_t <> Tuple []
         then Error [`Do_should_evaluate_to_unit]
         else Ok (Tuple [])
 
   | V.Let ((name, return_type_id), None, body) ->
-      let%bind return_t = find_type tenv return_type_id
-      and body_t = Term.infer tenv env body in
+      let%bind return_t = find_type xenv.types return_type_id
+      and body_t = Term.infer xenv body in
       if not (is_subtype body_t return_t)
         then Error [`Declared_type_does_not_match_real_one return_type_id]
         else Ok body_t
 
   | V.Let ((name, return_type_id), Some parameter, body) ->
-      let%bind return_t = find_type tenv return_type_id
-      and body_env, parameter_t = infer_parameter tenv env parameter in
+      let%bind return_t = find_type xenv.types return_type_id
+      and body_env, parameter_t = infer_parameter xenv parameter in
       let signature_t = Arrow (parameter_t, return_t) in
-      let%bind body_t = Term.infer tenv body_env body in
+      let%bind body_t = Term.infer {xenv with values=body_env} body in
       if body_t <> return_t
         then Error [`Declared_type_does_not_match_real_one return_type_id]
         else Ok signature_t
@@ -253,7 +255,7 @@ let rec infer tenv env = function
         List.fold body ~init:(Ok Env.(tenv, env, empty, empty))
         ~f:begin fun result item ->
           let%bind tenv, env, tenv', env' = result in
-          let%bind item_t = infer tenv env item in
+          let%bind item_t = infer {types=tenv; values=env} item in
           match V.binding item with
           | None -> result
           | Some name ->
@@ -266,7 +268,7 @@ let rec infer tenv env = function
               let env' = Env.add env' name item_t in
               Ok (tenv, env, tenv', env')
       end in
-      Ok (Module (name, tenv', env'))
+      Ok (Module (name, {types=tenv'; values=env'}))
 
   | V.Class _ ->
       assert false

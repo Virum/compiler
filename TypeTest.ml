@@ -7,9 +7,10 @@ module V = Syntax
 
 let env = Env.of_alist_exn
 let term tenv_alist env_alist term =
-  Term.infer (env tenv_alist) (env env_alist) term
+  Term.infer {types=(env tenv_alist); values=(env env_alist)} term
 let item tenv_alist env_alist term =
-  infer (env tenv_alist) (env env_alist) term
+  infer {types=(env tenv_alist); values=(env env_alist)} term
+(*   infer (env tenv_alist) (env env_alist) term *)
 
 
 let () = test "Subtyping" @@ fun () ->
@@ -229,11 +230,11 @@ let () = test "Member" @@ fun () ->
     V.(Member (a, "member"))
     => Error [`Member_does_not_belong ("member", "String")];
 
-  term [] ["a", Module ("M", env [], env ["member", Number])]
+  term [] ["a", Module ("M", {types=env []; values=env ["member", Number]})]
     V.(Member (a, "bogus"))
     => Error [`Member_does_not_belong ("bogus", "module M")];
 
-  term [] ["a", Module ("M", env [], env ["member", Number])]
+  term [] ["a", Module ("M", {types=env []; values=env ["member", Number]})]
     V.(Member (a, "member"))
     => Ok Number
 
@@ -366,21 +367,19 @@ let () = test "Module" @@ fun () ->
 
   item ["Number", Number] []
       V.(Module ("Foo", []))
-    => Module ("Foo", env [], env []);
+    => Module ("Foo", {types=env []; values=env []});
 
   item ["Number", Number] []
       V.(Module ("Foo", [
         Do (Tuple []);
       ]))
-    => Module ("Foo", env [], env []);
+    => Module ("Foo", {types=env []; values=env []});
 
   item ["Number", Number] []
       V.(Module ("Foo", [
         Let (("a", "Number"), None, Number 1);
       ]))
-    => Module ("Foo", env [], env [
-         "a", Number;
-       ])
+    => Module ("Foo", {types=env []; values=env ["a", Number]})
 
 
 let () = test "Module: first binding is available inside second" @@ fun () ->
@@ -390,10 +389,10 @@ let () = test "Module: first binding is available inside second" @@ fun () ->
         Let (("a", "Number"), None, Number 1);
         Let (("b", "Number"), None, a);
       ]))
-    => Module ("Foo", env [], env [
+    => Module ("Foo", {types=env []; values=env [
          "a", Number;
          "b", Number;
-       ])
+       ]})
 
 
 let () = test "Module: error (currently) short-cirquits" @@ fun () ->
@@ -413,12 +412,12 @@ let () = test "Module: defines a new module type" @@ fun () ->
         Let (("a", "Number"), None, Number 1);
         Module ("Bar", []);
       ]))
-    => Module ("Foo", env [
-         "Bar", Module ("Bar", env [], env []);
-       ], env [
+    => Module ("Foo", {types=env [
+         "Bar", Module ("Bar", {types=env []; values=env []});
+       ]; values=env [
          "a", Number;
-         "Bar", Module ("Bar", env [], env []);
-       ])
+         "Bar", Module ("Bar", {types=env []; values=env []});
+       ]})
 
 let () = test "Module: creating alias" @@ fun () ->
 
@@ -428,11 +427,11 @@ let () = test "Module: creating alias" @@ fun () ->
         Module ("Bar", []);
         Let (("BarAlias", "Bar"), None, Identifier "Bar");
       ]))
-    => Module ("Foo", env [
-         "Bar", Module ("Bar", env [], env []);
-         "BarAlias", Module ("Bar", env [], env []);
-       ], env [
+    => Module ("Foo", {types=env [
+         "Bar", Module ("Bar", {types=env []; values=env []});
+         "BarAlias", Module ("Bar", {types=env []; values=env []});
+       ]; values=env [
          "a", Number;
-         "Bar", Module ("Bar", env [], env []);
-         "BarAlias", Module ("Bar", env [], env []);
-       ])
+         "Bar", Module ("Bar", {types=env []; values=env []});
+         "BarAlias", Module ("Bar", {types=env []; values=env []});
+       ]})
