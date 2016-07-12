@@ -51,7 +51,7 @@ module Environment = struct
 
   let find = Map.find
   let empty = Map.empty
-  let add = Map.add
+  let add map key value = Map.add map ~key ~data:value
   let of_alist = Map.of_alist
   let of_alist_exn = Map.of_alist_exn
 
@@ -135,7 +135,7 @@ module Term = struct
 
     | V.LetIn (name, value, body) ->
         let%bind value_t = infer tenv env value in
-        let body_env = Env.add env ~key:name ~data:value_t in
+        let body_env = Env.add env name value_t in
         let%bind body_t = infer tenv body_env body in
         Ok body_t
 
@@ -206,7 +206,7 @@ let infer_parameter tenv env = function
 
   | [parameter, type_id] ->
       let%bind parameter_t = find_type tenv type_id in
-      let env' = Env.add env ~key:parameter ~data:parameter_t in
+      let env' = Env.add env parameter parameter_t in
       Ok (env', parameter_t)
 
   | parameters ->
@@ -255,18 +255,16 @@ let rec infer tenv env = function
           let%bind tenv, env, tenv', env' = result in
           let%bind item_t = infer tenv env item in
           match V.binding item with
+          | None -> result
           | Some name ->
               let tenv, tenv' = match item_t with
                 | Module _ ->
-                  let tenv = Env.add tenv ~key:name ~data:item_t in
-                  let tenv' = Env.add tenv' ~key:name ~data:item_t in
-                  tenv, tenv'
+                    Env.add tenv name item_t, Env.add tenv' name item_t
                 | _ -> tenv, tenv'
               in
-              let env = Env.add env ~key:name ~data:item_t in
-              let env' = Env.add env' ~key:name ~data:item_t in
+              let env = Env.add env name item_t in
+              let env' = Env.add env' name item_t in
               Ok (tenv, env, tenv', env')
-          | None -> Ok (tenv, env, tenv', env')
       end in
       Ok (Module (name, tenv', env'))
 
