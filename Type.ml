@@ -21,10 +21,10 @@ type t =
   [@@deriving sexp]
 
 
-and environment = t Core_kernel.Std.String.Map.t
+and table = t Core_kernel.Std.String.Map.t
   [@@deriving sexp]
 
-and environments = {types: environment; values: environment}
+and environments = {types: table; values: table}
 
 let rec to_string = function
   | Any     -> "Any"
@@ -46,10 +46,10 @@ let print t =
   print_endline (to_string t)
 
 
-module Environment = struct
+module Table = struct
   module Map = Core_kernel.Std.String.Map
 
-  type t = environment
+  type t = table
 
   let find = Map.find
   let empty = Map.empty
@@ -67,7 +67,6 @@ module Environment = struct
     Map.merge left right ~f:(fun ~key -> function
       | `Both (_, value) | `Left value | `Right value -> Some value)
 end
-module Env = Environment
 
 
 let operator_signature = function
@@ -107,7 +106,7 @@ module Term = struct
         Ok String
 
     | V.Identifier id ->
-        Env.find xenv.values id |> Result.of_option ~error:(`Unbound_identifier id)
+        Table.find xenv.values id |> Result.of_option ~error:(`Unbound_identifier id)
 
     | V.Tuple items ->
         let%bind types = items |> List.map ~f:(infer xenv) |> Result.all in
@@ -137,7 +136,7 @@ module Term = struct
 
     | V.LetIn (name, value, body) ->
         let%bind value_t = infer xenv value in
-        let body_env = Env.add xenv.values name value_t in
+        let body_env = Table.add xenv.values name value_t in
         let%bind body_t = infer {xenv with values=body_env} body in
         Ok body_t
 
@@ -162,7 +161,7 @@ module Term = struct
     | V.Member (value, member) ->
         (match%bind infer xenv value with
         | Module (_, xenv) | Class (_, xenv) as value_t ->
-            Env.find xenv.values member |> Result.of_option
+            Table.find xenv.values member |> Result.of_option
               ~error:(`Member_does_not_belong (member, to_string value_t))
         | value_t ->
             Error [`Member_does_not_belong (member, to_string value_t)])
@@ -174,7 +173,7 @@ end
 
 
 let find_type xenv type_id =
-  Env.find xenv.types type_id
+  Table.find xenv.types type_id
     |> Result.of_option ~error:(`Cannot_find_type type_id)
 
 
@@ -203,14 +202,14 @@ let rec is_subtype left right = match left, right with
   | _ -> false
 
 
-let add_type xenv key value = {xenv with types=Env.add xenv.types key value}
-let add_value xenv key value = {xenv with values=Env.add xenv.values key value}
+let add_type xenv key value = {xenv with types=Table.add xenv.types key value}
+let add_value xenv key value = {xenv with values=Table.add xenv.values key value}
 
 let infer_parameter xenv = function
 
   | [parameter, type_id] ->
       let%bind parameter_t = find_type xenv type_id in
-      let venv = Env.add xenv.values parameter parameter_t in
+      let venv = Table.add xenv.values parameter parameter_t in
       Ok (venv, parameter_t)
 
   | parameters ->
@@ -220,11 +219,11 @@ let infer_parameter xenv = function
       in
       let%bind pairs = parameters |> List.map ~f:pair_to_type |> Result.all in
       let types = List.map ~f:snd pairs in
-      let%bind parameters_venv = Env.of_alist pairs |> (function
+      let%bind parameters_venv = Table.of_alist pairs |> (function
         | `Duplicate_key key -> Error [`Duplicate_parameter_name key]
         | `Ok venv -> Ok venv)
       in
-      let new_env = Env.merge_right xenv.values parameters_venv in
+      let new_env = Table.merge_right xenv.values parameters_venv in
       Ok (new_env, Tuple types)
 
 
@@ -254,7 +253,7 @@ let rec infer ({types=tenv; values=env} as xenv) = function
 
   | V.Module (name, body) ->
       let%bind outer, inner =
-        List.fold body ~init:(Ok Env.(xenv, {types=empty; values=empty}))
+        List.fold body ~init:(Ok Table.(xenv, {types=empty; values=empty}))
         ~f:begin fun result item ->
           let%bind outer, inner = result in
           let%bind item_t = infer outer item in

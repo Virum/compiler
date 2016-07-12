@@ -2,10 +2,10 @@ let test, (=>) = Test.(test, (=>))
 
 module Sexp = Sexplib.Sexp
 open Type
-module Env = Type.Environment
+module Table = Type.Table
 module V = Syntax
 
-let env = Env.of_alist_exn
+let env = Table.of_alist_exn
 let term tenv_alist env_alist term =
   Term.infer {types=(env tenv_alist); values=(env env_alist)} term
 let item tenv_alist env_alist term =
