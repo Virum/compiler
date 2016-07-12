@@ -160,14 +160,12 @@ module Term = struct
             Error [`Heterogeneous_map (Pair.List.map type_pairs ~f:to_string)])
 
     | V.Member (value, member) ->
-        let%bind value_t = infer xenv value in
-        (match value_t with
-        | Module (_, xenv) | Class (_, xenv) ->
-            let%bind member_t =
-              Env.find xenv.values member |> Result.of_option
-                ~error:(`Member_does_not_belong (member, to_string value_t))
-            in Ok member_t
-        | type_ -> Error [`Member_does_not_belong (member, to_string value_t)])
+        (match%bind infer xenv value with
+        | Module (_, xenv) | Class (_, xenv) as value_t ->
+            Env.find xenv.values member |> Result.of_option
+              ~error:(`Member_does_not_belong (member, to_string value_t))
+        | value_t ->
+            Error [`Member_does_not_belong (member, to_string value_t)])
 
     | V.CaseFunction _
     | V.Extension _
@@ -175,8 +173,9 @@ module Term = struct
 end
 
 
-let find_type tenv type_id =
-  Env.find tenv type_id |> Result.of_option ~error:(`Cannot_find_type type_id)
+let find_type xenv type_id =
+  Env.find xenv.types type_id
+    |> Result.of_option ~error:(`Cannot_find_type type_id)
 
 
 let rec is_subtype left right = match left, right with
@@ -210,13 +209,13 @@ let add_value xenv key value = {xenv with values=Env.add xenv.values key value}
 let infer_parameter xenv = function
 
   | [parameter, type_id] ->
-      let%bind parameter_t = find_type xenv.types type_id in
+      let%bind parameter_t = find_type xenv type_id in
       let venv = Env.add xenv.values parameter parameter_t in
       Ok (venv, parameter_t)
 
   | parameters ->
       let pair_to_type (parameter, type_id) =
-        let%bind parameter_t = find_type xenv.types type_id in
+        let%bind parameter_t = find_type xenv type_id in
         Ok (parameter, parameter_t)
       in
       let%bind pairs = parameters |> List.map ~f:pair_to_type |> Result.all in
@@ -238,14 +237,14 @@ let rec infer ({types=tenv; values=env} as xenv) = function
         else Ok (Tuple [])
 
   | V.Let ((name, return_type_id), None, body) ->
-      let%bind return_t = find_type xenv.types return_type_id
+      let%bind return_t = find_type xenv return_type_id
       and body_t = Term.infer xenv body in
       if not (is_subtype body_t return_t)
         then Error [`Declared_type_does_not_match_real_one return_type_id]
         else Ok body_t
 
   | V.Let ((name, return_type_id), Some parameter, body) ->
-      let%bind return_t = find_type xenv.types return_type_id
+      let%bind return_t = find_type xenv return_type_id
       and body_env, parameter_t = infer_parameter xenv parameter in
       let signature_t = Arrow (parameter_t, return_t) in
       let%bind body_t = Term.infer {xenv with values=body_env} body in
