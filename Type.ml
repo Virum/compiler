@@ -120,11 +120,11 @@ module Term = struct
         infer_call tenv env caller_t argument
 
     | V.IfElse (condition, consequence, alternative) ->
-        let%bind condition_t =
+        let%bind () =
           let%bind condition_t = infer tenv env condition in
           if condition_t <> Boolean
             then Error [`If_condition_not_boolean]
-            else Ok condition_t
+            else Ok ()
         and return_t =
           let%bind consequence_t = infer tenv env consequence
           and alternative_t = infer tenv env alternative in
