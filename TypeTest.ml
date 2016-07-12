@@ -7,10 +7,9 @@ module V = Syntax
 
 let env = Env.of_alist_exn
 let term tenv_alist env_alist term =
-  Term.infer
-    (Env.of_alist_exn tenv_alist) (Env.of_alist_exn env_alist) term
+  Term.infer (env tenv_alist) (env env_alist) term
 let item tenv_alist env_alist term =
-  infer (Env.of_alist_exn tenv_alist) (Env.of_alist_exn env_alist) term
+  infer (env tenv_alist) (env env_alist) term
 
 
 let () = test "Subtyping" @@ fun () ->
@@ -218,6 +217,26 @@ let () = test "Map[K, V]" @@ fun () ->
   term [] ["b", Boolean; "a", String]
     V.(Map [b, a; a, b])
     => Error [`Heterogeneous_map ["Boolean", "String"; "String", "Boolean"]]
+
+
+let () = test "Member" @@ fun () ->
+
+  term [] []
+    V.(Member (a, "member"))
+    => Error [`Unbound_identifier "a"];
+
+  term [] ["a", String]
+    V.(Member (a, "member"))
+    => Error [`Member_does_not_belong ("member", "String")];
+
+  term [] ["a", Module ("M", env [], env ["member", Number])]
+    V.(Member (a, "bogus"))
+    => Error [`Member_does_not_belong ("bogus", "module M")];
+
+  term [] ["a", Module ("M", env [], env ["member", Number])]
+    V.(Member (a, "member"))
+    => Ok Number
+
 
 (* Items *)
 

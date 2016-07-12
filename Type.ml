@@ -37,8 +37,8 @@ let rec to_string = function
       Printf.sprintf "Map[%s, %s]" (to_string key) (to_string value)
   | Arrow (left, right) ->
       "(" ^ to_string left ^ " -> " ^ to_string right ^ ")"
-  | Class _ -> "Class"
-  | Module _ -> "Module"
+  | Class (name, _, _) -> "class " ^ name
+  | Module (name, _, _) -> "module " ^ name
 
 let print t =
   print_endline (to_string t)
@@ -157,7 +157,16 @@ module Term = struct
         | type_pairs ->
             Error [`Heterogeneous_map (Pair.List.map type_pairs ~f:to_string)])
 
-    | V.Member _
+    | V.Member (value, member) ->
+        let%bind value_t = infer tenv env value in
+        (match value_t with
+        | Module (_, _, env) | Class (_, _, env) ->
+            let%bind member_t =
+              Env.find env member |> Result.of_option
+                ~error:(`Member_does_not_belong (member, to_string value_t))
+            in Ok member_t
+        | type_ -> Error [`Member_does_not_belong (member, to_string value_t)])
+
     | V.CaseFunction _
     | V.Extension _
     | V.Switch _ -> assert false
