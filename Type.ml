@@ -204,6 +204,9 @@ let rec is_subtype left right = match left, right with
   | _ -> false
 
 
+let add_type xenv key value = {xenv with types=Env.add xenv.types key value}
+let add_value xenv key value = {xenv with values=Env.add xenv.values key value}
+
 let infer_parameter xenv = function
 
   | [parameter, type_id] ->
@@ -251,24 +254,22 @@ let rec infer ({types=tenv; values=env} as xenv) = function
         else Ok signature_t
 
   | V.Module (name, body) ->
-      let%bind tenv, env, tenv', env' =
-        List.fold body ~init:(Ok Env.(tenv, env, empty, empty))
+      let%bind outer, inner =
+        List.fold body ~init:(Ok Env.(xenv, {types=empty; values=empty}))
         ~f:begin fun result item ->
-          let%bind tenv, env, tenv', env' = result in
-          let%bind item_t = infer {types=tenv; values=env} item in
+          let%bind outer, inner = result in
+          let%bind item_t = infer outer item in
           match V.binding item with
           | None -> result
           | Some name ->
-              let tenv, tenv' = match item_t with
+              let outer, inner = match item_t with
                 | Module _ ->
-                    Env.add tenv name item_t, Env.add tenv' name item_t
-                | _ -> tenv, tenv'
+                    add_type outer name item_t, add_type inner name item_t
+                | _ -> outer, inner
               in
-              let env = Env.add env name item_t in
-              let env' = Env.add env' name item_t in
-              Ok (tenv, env, tenv', env')
+              Ok (add_value outer name item_t, add_value inner name item_t)
       end in
-      Ok (Module (name, {types=tenv'; values=env'}))
+      Ok (Module (name, inner))
 
   | V.Class _ ->
       assert false
