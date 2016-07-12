@@ -16,6 +16,10 @@ let bind = function
 let map ~f result =
   bind result (fun x -> Ok (f x))
 
+let with_error error = function
+  | Ok ok -> Ok ok
+  | Error _ -> Error error
+
 let both left right = match left, right with
   | Ok left, Ok right -> Ok (left, right)
   | Error left, Error right -> Error (left @ right)

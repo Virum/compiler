@@ -76,12 +76,17 @@ module Environment = struct
     Table.find env.types type_id
       |> Result.of_option ~error:(`Cannot_find_type type_id)
 
+  let find_value env id =
+    Table.find env.values id
+      |> Result.of_option ~error:(`Unbound_identifier id)
+
   let add_type env key value =
     {env with types=Table.add env.types key value}
 
   let add_value env key value =
     {env with values=Table.add env.values key value}
 
+  let empty = {types=Table.empty; values=Table.empty}
 end
 module Env = Environment
 
@@ -123,7 +128,7 @@ module Term = struct
         Ok String
 
     | V.Identifier id ->
-        Table.find env.values id |> Result.of_option ~error:(`Unbound_identifier id)
+        Env.find_value env id
 
     | V.Tuple items ->
         let%bind types = items |> List.map ~f:(infer env) |> Result.all in
@@ -153,9 +158,8 @@ module Term = struct
 
     | V.LetIn (name, value, body) ->
         let%bind value_t = infer env value in
-        let body_env = Table.add env.values name value_t in
-        let%bind body_t = infer {env with values=body_env} body in
-        Ok body_t
+        let env = Env.add_value env name value_t in
+        infer env body
 
     | V.Array items ->
         let%bind types = items |> List.map ~f:(infer env) |> Result.all in
@@ -178,8 +182,8 @@ module Term = struct
     | V.Member (value, member) ->
         (match%bind infer env value with
         | Module (_, env) | Class (_, env) as value_t ->
-            Table.find env.values member |> Result.of_option
-              ~error:(`Member_does_not_belong (member, to_string value_t))
+            Env.find_value env member |> Result.with_error
+              [`Member_does_not_belong (member, to_string value_t)]
         | value_t ->
             Error [`Member_does_not_belong (member, to_string value_t)])
 
@@ -218,8 +222,8 @@ let infer_parameter env = function
 
   | [parameter, type_id] ->
       let%bind parameter_t = Env.find_type env type_id in
-      let venv = Table.add env.values parameter parameter_t in
-      Ok (venv, parameter_t)
+      let env = Env.add_value env parameter parameter_t in
+      Ok (env, parameter_t)
 
   | parameters ->
       let pair_to_type (parameter, type_id) =
@@ -233,7 +237,7 @@ let infer_parameter env = function
         | `Ok venv -> Ok venv)
       in
       let new_env = Table.merge_right env.values parameters_venv in
-      Ok (new_env, Tuple types)
+      Ok ({env with values=new_env}, Tuple types)
 
 
 let rec infer env = function
@@ -253,16 +257,16 @@ let rec infer env = function
 
   | V.Let ((name, return_type_id), Some parameter, body) ->
       let%bind return_t = Env.find_type env return_type_id
-      and body_env, parameter_t = infer_parameter env parameter in
+      and env, parameter_t = infer_parameter env parameter in
       let signature_t = Arrow (parameter_t, return_t) in
-      let%bind body_t = Term.infer {env with values=body_env} body in
+      let%bind body_t = Term.infer env body in
       if body_t <> return_t
         then Error [`Declared_type_does_not_match_real_one return_type_id]
         else Ok signature_t
 
   | V.Module (name, body) ->
       let%bind outer, inner =
-        List.fold body ~init:(Ok Table.(env, {types=empty; values=empty}))
+        List.fold body ~init:(Ok (env, Env.empty))
         ~f:begin fun result item ->
           let%bind outer, inner = result in
           let%bind item_t = infer outer item in
